@@ -39,28 +39,37 @@ class _KanjiSearchBarState extends State<KanjiSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return TextField(
       controller: _controller,
       focusNode: widget.focusNode,
       onChanged: _onChanged,
-      style: const TextStyle(fontSize: 13),
+      style: TextStyle(
+        fontSize: 13,
+        color: isDark ? Colors.white : const Color(0xFF2C3E50),
+      ),
       decoration: InputDecoration(
         hintText: 'Search kanji...',
-        hintStyle: const TextStyle(fontSize: 13),
+        hintStyle: TextStyle(
+          fontSize: 13,
+          color: isDark ? Colors.white38 : const Color(0xFF8A9AAA),
+        ),
         prefixIcon: widget.onClose != null
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, size: 18),
+                icon: Icon(Icons.arrow_back, size: 18,
+                    color: isDark ? Colors.white70 : const Color(0xFF3A4A5A)),
                 onPressed: widget.onClose,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               )
-            : const Icon(Icons.search, size: 18),
+            : Icon(Icons.search, size: 18,
+                color: isDark ? Colors.white70 : const Color(0xFF3A4A5A)),
         prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, size: 16),
+                icon: Icon(Icons.clear, size: 16,
+                    color: isDark ? Colors.white54 : const Color(0xFF5A6A7A)),
                 onPressed: () {
                   _controller.clear();
                   context.read<AppState>().setSearchQuery('');
@@ -70,10 +79,26 @@ class _KanjiSearchBarState extends State<KanjiSearchBar> {
               )
             : null,
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest,
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.15 : 0.6),
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.15 : 0.6),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.3 : 0.8),
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         isDense: true,

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -82,118 +83,210 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildFloatingHeader(AppState appState, bool isDark) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 8,
+        left: 16,
+        right: 16,
+        bottom: 8,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0.04),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.65),
+                        Colors.white.withValues(alpha: 0.35),
+                      ],
+              ),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.8),
+                width: 1,
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Glossy highlight
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 30,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: isDark ? 0.08 : 0.4),
+                          Colors.white.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  child: _isSearching
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: KanjiSearchBar(
+                                focusNode: _searchFocusNode,
+                                onClose: () {
+                                  setState(() => _isSearching = false);
+                                  context
+                                      .read<AppState>()
+                                      .setSearchQuery('');
+                                },
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                'assets/jftandskillmocktest.png',
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    appState.configValue(
+                                        'app_name', 'SSW Kanji'),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF2C3E50),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    appState.configValue(
+                                      'app_by_text',
+                                      'Prime Benchmark Private Limited',
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : const Color(0xFF5A6A7A),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _AppBarIconButton(
+                              icon: Icons.search,
+                              label: 'Search',
+                              onPressed: () {
+                                setState(() => _isSearching = true);
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback(
+                                  (_) =>
+                                      _searchFocusNode.requestFocus(),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            _AppBarIconButton(
+                              icon: Icons.ios_share_outlined,
+                              label: 'Share',
+                              onPressed: () => _share(context),
+                            ),
+                            const SizedBox(width: 6),
+                            _AppBarIconButton(
+                              icon: Icons.phone_outlined,
+                              label: 'Support',
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const SupportScreen()),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            _AppBarIconButton(
+                              icon: Icons.settings_outlined,
+                              label: 'Settings',
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const SettingsScreen()),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        titleSpacing: 16,
-        centerTitle: false,
-        title: _isSearching
-            ? KanjiSearchBar(
-                focusNode: _searchFocusNode,
-                onClose: () {
-                  setState(() => _isSearching = false);
-                  context.read<AppState>().setSearchQuery('');
-                },
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.asset(
-                      'assets/jftandskillmocktest.png',
-                      width: 36,
-                      height: 36,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appState.configValue('app_name', 'SSW Kanji'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        appState.configValue(
-                          'app_by_text',
-                          'by Prime Benchmark Private Limited',
-                        ),
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-        actions: _isSearching
-            ? []
-            : [
-                _AppBarIconButton(
-                  icon: Icons.search,
-                  label: 'Search',
-                  onPressed: () {
-                    setState(() => _isSearching = true);
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _searchFocusNode.requestFocus(),
-                    );
-                  },
-                ),
-                _AppBarIconButton(
-                  icon: Icons.share_outlined,
-                  label: 'Share',
-                  onPressed: () => _share(context),
-                ),
-                _AppBarIconButton(
-                  icon: Icons.support_agent_outlined,
-                  label: 'Support',
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SupportScreen()),
-                  ),
-                ),
-                _AppBarIconButton(
-                  icon: Icons.settings_outlined,
-                  label: 'Settings',
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  ),
-                ),
-                const SizedBox(width: 2),
-              ],
+      body: Column(
+        children: [
+          _buildFloatingHeader(appState, isDark),
+          Expanded(child: _buildBody(appState)),
+        ],
       ),
-      body: _buildBody(appState),
     );
   }
 
   Widget _buildFooter(BuildContext context, AppState appState) {
     final year = DateTime.now().year;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
-        '© $year ${appState.configValue('footer_text', 'Prime Benchmark Private Limited')} · ${appState.configValue('app_name', 'SSW Kanji')}',
+        '\u00A9 $year ${appState.configValue('footer_text', 'Prime Benchmark Private Limited')} \u00B7 ${appState.configValue('app_name', 'SSW Kanji')}',
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        style: TextStyle(
+          fontSize: 11,
+          color: isDark
+              ? Colors.white38
+              : const Color(0xFF5A6A7A).withValues(alpha: 0.7),
         ),
       ),
     );
@@ -250,31 +343,25 @@ class _HomeScreenState extends State<HomeScreen> {
               .where((c) => appState.categoryHasResults(c.id))
               .toList();
 
-    return Column(
-      children: [
-        Expanded(
-          child: visibleCategories.isEmpty
-              ? Center(
-                  child: Text(
-                    'No results found',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: visibleCategories.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == visibleCategories.length) {
-                      return _buildFooter(context, appState);
-                    }
-                    return CategoryCard(category: visibleCategories[index]);
-                  },
-                ),
-        ),
-      ],
-    );
+    return visibleCategories.isEmpty
+        ? Center(
+            child: Text(
+              'No results found',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.only(top: 4, bottom: 24),
+            itemCount: visibleCategories.length + 1,
+            itemBuilder: (context, index) {
+              if (index == visibleCategories.length) {
+                return _buildFooter(context, appState);
+              }
+              return CategoryCard(category: visibleCategories[index]);
+            },
+          );
   }
 }
 
@@ -291,22 +378,27 @@ class _AppBarIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? Colors.white70 : const Color(0xFF3A4A5A);
+
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22),
+            Icon(icon, size: 24, color: color),
             const SizedBox(height: 2),
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(fontSize: 10),
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
