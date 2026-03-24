@@ -101,85 +101,83 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               )
             : Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          appState.configValue('app_name', 'SSW Kanji'),
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          appState.configValue('app_by_text', 'by Prime Benchmark Private Limited'),
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/jftandskillmocktest.png',
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () {
-                      setState(() => _isSearching = true);
-                      WidgetsBinding.instance.addPostFrameCallback(
-                        (_) => _searchFocusNode.requestFocus(),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.search,
-                              size: 22,
-                              color: Theme.of(context).colorScheme.onSurface),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Search',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(fontSize: 10),
-                          ),
-                        ],
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        appState.configValue('app_name', 'SSW Kanji'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                      Text(
+                        appState.configValue(
+                          'app_by_text',
+                          'by Prime Benchmark Private Limited',
+                        ),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
                   ),
                 ],
               ),
-        actions: _isSearching ? [] : [
-          _AppBarIconButton(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            onPressed: () => _share(context),
-          ),
-          _AppBarIconButton(
-            icon: Icons.support_agent_outlined,
-            label: 'Support',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SupportScreen()),
-            ),
-          ),
-          _AppBarIconButton(
-            icon: Icons.settings_outlined,
-            label: 'Settings',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
+        actions: _isSearching
+            ? []
+            : [
+                _AppBarIconButton(
+                  icon: Icons.search,
+                  label: 'Search',
+                  onPressed: () {
+                    setState(() => _isSearching = true);
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _searchFocusNode.requestFocus(),
+                    );
+                  },
+                ),
+                _AppBarIconButton(
+                  icon: Icons.share_outlined,
+                  label: 'Share',
+                  onPressed: () => _share(context),
+                ),
+                _AppBarIconButton(
+                  icon: Icons.support_agent_outlined,
+                  label: 'Support',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SupportScreen()),
+                  ),
+                ),
+                _AppBarIconButton(
+                  icon: Icons.settings_outlined,
+                  label: 'Settings',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                ),
+                const SizedBox(width: 2),
+              ],
       ),
       body: _buildBody(appState),
     );
@@ -193,8 +191,10 @@ class _HomeScreenState extends State<HomeScreen> {
         '© $year ${appState.configValue('footer_text', 'Prime Benchmark Private Limited')} · ${appState.configValue('app_name', 'SSW Kanji')}',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        ),
       ),
     );
   }
@@ -226,8 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 appState.error!,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -247,8 +247,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final visibleCategories = appState.searchQuery.isEmpty
         ? appState.categories
         : appState.categories
-            .where((c) => appState.categoryHasResults(c.id))
-            .toList();
+              .where((c) => appState.categoryHasResults(c.id))
+              .toList();
 
     return Column(
       children: [
@@ -258,8 +258,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text(
                     'No results found',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -295,7 +295,7 @@ class _AppBarIconButton extends StatelessWidget {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -304,7 +304,9 @@ class _AppBarIconButton extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(fontSize: 10),
             ),
           ],
         ),
