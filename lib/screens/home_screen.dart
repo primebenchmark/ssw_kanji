@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        scrolledUnderElevation: 0,
         leadingWidth: 110,
         leading: const Padding(
           padding: EdgeInsets.only(left: 16),
@@ -40,7 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        title: const KanjiSearchBar(),
+        title: const FractionallySizedBox(
+          widthFactor: 0.6,
+          child: KanjiSearchBar(),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -54,6 +58,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _buildBody(appState),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final year = DateTime.now().year;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        '© $year Prime Benchmark Private Limited · SSW Kanji',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+      ),
     );
   }
 
@@ -122,8 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: visibleCategories.length,
+                  itemCount: visibleCategories.length + 1,
                   itemBuilder: (context, index) {
+                    if (index == visibleCategories.length) {
+                      return _buildFooter(context);
+                    }
                     return CategoryCard(category: visibleCategories[index]);
                   },
                 ),
