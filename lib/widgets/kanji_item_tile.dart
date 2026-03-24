@@ -19,6 +19,7 @@ class KanjiItemTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               item.kanji,
@@ -30,10 +31,11 @@ class KanjiItemTile extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     item.reading,
+                    textAlign: TextAlign.right,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colorScheme.primary,
                       fontWeight: FontWeight.w500,
@@ -42,6 +44,7 @@ class KanjiItemTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     item.meaning,
+                    textAlign: TextAlign.right,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
