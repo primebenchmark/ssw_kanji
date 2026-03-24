@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/category.dart';
 import '../providers/app_state.dart';
@@ -18,6 +19,24 @@ class CategoryCard extends StatelessWidget {
     final items = appState.itemsForCategory(category.id);
     final totalCount = appState.itemCountForCategory(category.id);
 
+    final vertPadding = double.tryParse(
+          appState.configValue('category_card_vertical_padding', '16'),
+        ) ??
+        16.0;
+    final categoryFontKey = appState.configValue('category_font', '');
+    TextStyle? categoryNameStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+    if (categoryFontKey.isNotEmpty) {
+      try {
+        categoryNameStyle = GoogleFonts.getFont(
+          categoryFontKey,
+          textStyle: categoryNameStyle,
+        );
+      } catch (_) {}
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 2,
@@ -29,16 +48,13 @@ class CategoryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: () => appState.toggleCategory(category.id),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: vertPadding),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       category.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ),
+                      style: categoryNameStyle,
                     ),
                   ),
                   Container(

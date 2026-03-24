@@ -8,6 +8,7 @@ class AppState extends ChangeNotifier {
   List<Category> _categories = [];
   List<KanjiItem> _allItems = [];
   Map<int, List<KanjiItem>> _itemsByCategory = {};
+  Map<String, String> _appConfig = {};
 
   ThemeMode _themeMode = ThemeMode.light;
   String _fontFamily = 'Noto Serif JP';
@@ -22,6 +23,11 @@ class AppState extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Category> get categories => _categories;
+
+  String configValue(String key, String defaultValue) {
+    final v = _appConfig[key];
+    return (v != null && v.isNotEmpty) ? v : defaultValue;
+  }
 
   bool isCategoryExpanded(int id) => _expandedCategories.contains(id);
 
@@ -83,6 +89,7 @@ class AppState extends ChangeNotifier {
     try {
       _categories = await service.fetchCategories();
       _allItems = await service.fetchAllItems();
+      _appConfig = await service.fetchAppConfig();
       _itemsByCategory = {};
       for (final item in _allItems) {
         _itemsByCategory.putIfAbsent(item.categoryId, () => []).add(item);
@@ -92,6 +99,12 @@ class AppState extends ChangeNotifier {
       _error = e.toString();
       _isLoading = false;
     }
+    notifyListeners();
+  }
+
+  Future<void> updateConfig(KanjiService service, String key, String value) async {
+    await service.updateConfigValue(key, value);
+    _appConfig[key] = value;
     notifyListeners();
   }
 

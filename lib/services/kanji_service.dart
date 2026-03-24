@@ -22,4 +22,22 @@ class KanjiService {
         .order('sort_order');
     return data.map((e) => KanjiItem.fromJson(e)).toList();
   }
+
+  Future<Map<String, String>> fetchAppConfig() async {
+    try {
+      final data = await _client.from('app_config').select('key, value');
+      return {
+        for (final e in data)
+          e['key'] as String: e['value'] as String? ?? ''
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> updateConfigValue(String key, String value) async {
+    await _client
+        .from('app_config')
+        .upsert({'key': key, 'value': value}, onConflict: 'key');
+  }
 }

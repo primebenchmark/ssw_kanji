@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_state.dart';
+import 'admin_panel_screen.dart';
 import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -206,14 +207,17 @@ class SettingsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'JFT & Skill Mock Test',
+                          appState.configValue('more_apps_name', 'JFT & Skill Mock Test'),
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Prepare for JFT-Basic and Skill Test with our mock test. JFT-Basic, Food, Nursing(JP/NP), Agri(Crop/Live), Acco, Cons, Building Cleaning, Ground Handling',
+                          appState.configValue(
+                            'more_apps_description',
+                            'Prepare for JFT-Basic and Skill Test with our mock test. JFT-Basic, Food, Nursing(JP/NP), Agri(Crop/Live), Acco, Cons, Building Cleaning, Ground Handling',
+                          ),
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -221,7 +225,10 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         FilledButton.tonal(
                           onPressed: () => launchUrl(
-                            Uri.parse('https://primebenchmark.com.np/app'),
+                            Uri.parse(appState.configValue(
+                              'more_apps_url',
+                              'https://primebenchmark.com.np/app',
+                            )),
                             mode: LaunchMode.externalApplication,
                           ),
                           style: FilledButton.styleFrom(
@@ -256,6 +263,28 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              ),
+            ),
+          ),
+
+          // Admin section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+            child: Text(
+              'Admin',
+              style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+            ),
+          ),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: const Text('Admin Panel'),
+              subtitle: const Text('Manage app content and appearance'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
               ),
             ),
           ),
