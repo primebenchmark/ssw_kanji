@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 
 class KanjiSearchBar extends StatefulWidget {
-  const KanjiSearchBar({super.key});
+  const KanjiSearchBar({super.key, this.focusNode, this.onClose});
+
+  final FocusNode? focusNode;
+  final VoidCallback? onClose;
 
   @override
   State<KanjiSearchBar> createState() => _KanjiSearchBarState();
@@ -40,12 +43,20 @@ class _KanjiSearchBarState extends State<KanjiSearchBar> {
 
     return TextField(
       controller: _controller,
+      focusNode: widget.focusNode,
       onChanged: _onChanged,
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: 'Search kanji...',
         hintStyle: const TextStyle(fontSize: 13),
-        prefixIcon: const Icon(Icons.search, size: 18),
+        prefixIcon: widget.onClose != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, size: 18),
+                onPressed: widget.onClose,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              )
+            : const Icon(Icons.search, size: 18),
         prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(

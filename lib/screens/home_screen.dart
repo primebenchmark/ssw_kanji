@@ -18,6 +18,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _isSearching = false;
+  final _searchFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,42 +89,74 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         scrolledUnderElevation: 0,
-        leadingWidth: 155,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  appState.configValue('app_name', 'SSW Kanji'),
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  appState.configValue('app_by_text', 'by Prime Benchmark Private Limited'),
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
-        ),
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
         centerTitle: false,
-        title: Align(
-          alignment: Alignment.centerRight,
-          child: FractionallySizedBox(
-            widthFactor: 0.6,
-            child: KanjiSearchBar(),
-          ),
-        ),
-        actions: [
+        title: _isSearching
+            ? KanjiSearchBar(
+                focusNode: _searchFocusNode,
+                onClose: () {
+                  setState(() => _isSearching = false);
+                  context.read<AppState>().setSearchQuery('');
+                },
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          appState.configValue('app_name', 'SSW Kanji'),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          appState.configValue('app_by_text', 'by Prime Benchmark Private Limited'),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _isSearching = true);
+                      WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => _searchFocusNode.requestFocus(),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search,
+                              size: 22,
+                              color: Theme.of(context).colorScheme.onSurface),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Search',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+        actions: _isSearching ? [] : [
           _AppBarIconButton(
             icon: Icons.share_outlined,
             label: 'Share',

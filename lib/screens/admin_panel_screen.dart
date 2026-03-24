@@ -196,6 +196,11 @@ class _AdminContentState extends State<_AdminContent> {
   final Set<String> _saving = {};
   final Set<String> _saved = {};
 
+  final _notifTitleController = TextEditingController();
+  final _notifBodyController = TextEditingController();
+  final _notifImageController = TextEditingController();
+  bool _sendingNotif = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -216,7 +221,58 @@ class _AdminContentState extends State<_AdminContent> {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _notifTitleController.dispose();
+    _notifBodyController.dispose();
+    _notifImageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendNotification() async {
+    final title = _notifTitleController.text.trim();
+    final body = _notifBodyController.text.trim();
+    final image = _notifImageController.text.trim();
+
+    if (title.isEmpty || body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and body are required')),
+      );
+      return;
+    }
+
+    setState(() => _sendingNotif = true);
+    try {
+      final payload = <String, String>{'title': title, 'body': body};
+      if (image.isNotEmpty) payload['image'] = image;
+
+      final result = await Supabase.instance.client.functions.invoke(
+        'send-notification',
+        body: payload,
+      );
+
+      if (!mounted) return;
+
+      final data = result.data as Map<String, dynamic>?;
+      final sent = data?['sent'] ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Notification sent to $sent device(s)'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+      _notifTitleController.clear();
+      _notifBodyController.clear();
+      _notifImageController.clear();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sendingNotif = false);
+    }
   }
 
   Future<void> _save(String key, String value) async {
@@ -257,39 +313,111 @@ class _AdminContentState extends State<_AdminContent> {
         title: const Text('Admin Panel', style: TextStyle(fontWeight: FontWeight.w700)),
         leading: BackButton(onPressed: () => Navigator.pop(context)),
       ),
-      body: ListView.builder(
+      body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: sectionEntries.length,
-        itemBuilder: (context, si) {
-          final section = sectionEntries[si];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-                child: Text(
-                  section.key,
-                  style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
-                ),
-              ),
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      for (int fi = 0; fi < section.value.length; fi++) ...[
-                        if (fi > 0) const Divider(height: 28),
-                        _buildFieldEditor(context, section.value[fi]),
-                      ],
-                    ],
+        children: [
+          _buildNotificationPanel(context),
+          for (final section in sectionEntries)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+                  child: Text(
+                    section.key,
+                    style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        for (int fi = 0; fi < section.value.length; fi++) ...[
+                          if (fi > 0) const Divider(height: 28),
+                          _buildFieldEditor(context, section.value[fi]),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildNotificationPanel(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            'Push Notifications',
+            style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _notifTitleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notification Title',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.title),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _notifBodyController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Notification Body',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.notes),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _notifImageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Image URL (optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.image_outlined),
+                    hintText: 'https://example.com/image.jpg',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _sendingNotif ? null : _sendNotification,
+                  icon: _sendingNotif
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.send),
+                  label: Text(_sendingNotif ? 'Sending...' : 'Send Notification'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
