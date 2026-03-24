@@ -265,6 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Column(
         children: [
           _buildFloatingHeader(appState, isDark),
