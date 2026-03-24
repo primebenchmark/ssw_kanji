@@ -1,4 +1,4 @@
-package com.example.ssw_kanji
+package com.ssw.kanji
 
 import io.flutter.embedding.android.FlutterActivity
 

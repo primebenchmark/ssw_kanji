@@ -19,8 +19,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final service = KanjiService(Supabase.instance.client);
-    context.read<AppState>().loadData(service);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final service = KanjiService(Supabase.instance.client);
+      context.read<AppState>().loadData(service);
+    });
   }
 
   @override
