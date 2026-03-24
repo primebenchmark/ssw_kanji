@@ -38,6 +38,7 @@ dependencies:
   google_fonts: ^6.2.1
   provider: ^6.1.2
   shared_preferences: ^2.3.4
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -62,10 +63,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/logo.png
+    - assets/jftandskillmocktest.png
+
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "logo.png"
+  image_path: "assets/logo.png"
   remove_alpha_ios: true
 
   # To add assets to your application, add an assets section, like this:

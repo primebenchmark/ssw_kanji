@@ -10,7 +10,7 @@ class AppState extends ChangeNotifier {
   Map<int, List<KanjiItem>> _itemsByCategory = {};
 
   ThemeMode _themeMode = ThemeMode.dark;
-  String _fontFamily = 'Noto Sans JP';
+  String _fontFamily = 'Noto Serif JP';
   String _searchQuery = '';
   final Set<int> _expandedCategories = {};
   bool _isLoading = true;
@@ -99,7 +99,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('isDarkTheme') ?? true;
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    _fontFamily = prefs.getString('fontFamily') ?? 'Noto Sans JP';
+    _fontFamily = prefs.getString('fontFamily') ?? 'Noto Serif JP';
     notifyListeners();
   }
 

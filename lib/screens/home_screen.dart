@@ -4,9 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/app_state.dart';
 import '../services/kanji_service.dart';
 import '../widgets/category_card.dart';
-import '../widgets/font_selector.dart';
 import '../widgets/search_bar_widget.dart';
-import '../widgets/theme_toggle.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,15 +30,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'SSW Kanji',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        leadingWidth: 110,
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 16),
+          child: Center(
+            child: Text(
+              'SSW Kanji',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+          ),
         ),
-        centerTitle: true,
-        actions: const [
-          FontSelector(),
-          ThemeToggle(),
-          SizedBox(width: 4),
+        title: const KanjiSearchBar(),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: _buildBody(appState),
@@ -99,7 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Column(
       children: [
-        const KanjiSearchBar(),
         Expanded(
           child: visibleCategories.isEmpty
               ? Center(

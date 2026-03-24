@@ -15,6 +15,12 @@ class _KanjiSearchBarState extends State<KanjiSearchBar> {
   Timer? _debounce;
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
@@ -32,32 +38,34 @@ class _KanjiSearchBarState extends State<KanjiSearchBar> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: TextField(
-        controller: _controller,
-        onChanged: _onChanged,
-        decoration: InputDecoration(
-          hintText: 'Search kanji, reading, or meaning...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _controller.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _controller.clear();
-                    context.read<AppState>().setSearchQuery('');
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    return TextField(
+      controller: _controller,
+      onChanged: _onChanged,
+      style: const TextStyle(fontSize: 13),
+      decoration: InputDecoration(
+        hintText: 'Search kanji...',
+        hintStyle: const TextStyle(fontSize: 13),
+        prefixIcon: const Icon(Icons.search, size: 18),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 16),
+                onPressed: () {
+                  _controller.clear();
+                  context.read<AppState>().setSearchQuery('');
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              )
+            : null,
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        isDense: true,
       ),
     );
   }
