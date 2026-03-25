@@ -26,7 +26,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Effective Date: March 24, 2026',
+              'Effective Date: March 25, 2026',
               style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
@@ -35,10 +35,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
               title: '1. Information We Collect',
               body:
                   'SSW Kanji does not collect any personally identifiable information. '
-                  'The app operates entirely offline after initial data load. '
                   'We do not require account registration or login.\n\n'
                   'The only data stored on your device is your app preferences (theme and font selection), '
-                  'which are saved locally using shared preferences and never transmitted.',
+                  'which are saved locally using shared preferences and never transmitted.\n\n'
+                  'If you opt in to push notifications, a Firebase-assigned device token is registered '
+                  'with Firebase Cloud Messaging solely to deliver notifications. This token is not '
+                  'linked to any personal identity.',
             ),
             _section(
               context,
@@ -54,8 +56,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
               title: '3. Third-Party Services',
               body:
                   'This app uses the following third-party services:\n\n'
-                  '• Supabase — used to fetch kanji content data. No personally identifiable information is sent.\n'
-                  '• Google Fonts — font assets are loaded at runtime. Font requests may be logged by Google per their privacy policy.\n\n'
+                  '• Supabase — used to fetch kanji content and remote app configuration. No personally identifiable information is sent.\n'
+                  '• Google Fonts — font assets are loaded at runtime. Font requests may be logged by Google per their privacy policy.\n'
+                  '• Firebase Cloud Messaging (Google) — used to deliver optional push notifications. A device token may be stored on Firebase servers.\n\n'
                   'We encourage you to review the privacy policies of these services.',
             ),
             _section(
@@ -71,8 +74,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
               context,
               title: '5. Permissions',
               body:
-                  'This app requires the following permissions:\n\n'
-                  '• Internet — to load kanji content from our server and download Google Fonts.\n\n'
+                  'This app requests the following permissions:\n\n'
+                  '• Internet — to load kanji content from our server, download Google Fonts, and receive push notifications.\n'
+                  '• Post Notifications (Android 13+) — to display optional kanji study reminders. You may deny this permission without affecting core app functionality.\n\n'
                   'No other device permissions (camera, microphone, location, contacts, storage) are requested.',
             ),
             _section(

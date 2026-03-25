@@ -385,9 +385,11 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final sortedCategories = [...appState.categories]
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final visibleCategories = appState.searchQuery.isEmpty
-        ? appState.categories
-        : appState.categories
+        ? sortedCategories
+        : sortedCategories
               .where((c) => appState.categoryHasResults(c.id))
               .toList();
 

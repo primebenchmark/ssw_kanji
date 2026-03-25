@@ -63,3 +63,14 @@ ios/Runner/GoogleService-Info.plist
 
 # Local properties
 android/local.properties
+
+# VS Code workspace settings (keep launch.json/tasks.json if desired)
+.vscode/settings.json
+.vscode/extensions.json
+
+# macOS metadata
+**/.DS_Store
+
+# Windows thumbnail cache
+Thumbs.db
+ehthumbs.db
