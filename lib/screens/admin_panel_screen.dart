@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io' as io;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,14 +15,18 @@ import '../services/kanji_service.dart';
 class _ConfigField {
   final String key;
   final String label;
-  final String type; // 'text' | 'url' | 'multiline' | 'number' | 'font'
+  final String type; // 'text' | 'url' | 'image_url' | 'multiline' | 'number' | 'font' | 'slider'
   final String defaultValue;
+  final double sliderMin;
+  final double sliderMax;
 
   const _ConfigField({
     required this.key,
     required this.label,
     required this.type,
     required this.defaultValue,
+    this.sliderMin = 0,
+    this.sliderMax = 100,
   });
 }
 
@@ -30,7 +40,7 @@ const _sections = <String, List<_ConfigField>>{
     _ConfigField(key: 'share_android_url', label: 'Android Store URL', type: 'url', defaultValue: 'https://play.google.com/store/apps/details?id=com.ssw.kanji'),
     _ConfigField(key: 'share_ios_url', label: 'iOS Store URL', type: 'url', defaultValue: 'https://apps.apple.com/app/ssw-kanji'),
     _ConfigField(key: 'header_link_url', label: 'Header Link URL (tap left of nav bar, leave empty to disable)', type: 'url', defaultValue: ''),
-    _ConfigField(key: 'header_bg_image_url', label: 'Header Background Image URL (leave empty to disable)', type: 'url', defaultValue: ''),
+    _ConfigField(key: 'header_bg_image_url', label: 'Header Background Image URL (leave empty to disable)', type: 'image_url', defaultValue: ''),
   ],
   'Contact': [
     _ConfigField(key: 'contact_whatsapp_url', label: 'WhatsApp URL (leave empty to hide)', type: 'url', defaultValue: ''),
@@ -54,6 +64,9 @@ const _sections = <String, List<_ConfigField>>{
     _ConfigField(key: 'kanji_item_vertical_padding', label: 'Kanji Item Vertical Padding', type: 'number', defaultValue: '12'),
     _ConfigField(key: 'category_font', label: 'Category Header Font', type: 'font', defaultValue: ''),
     _ConfigField(key: 'kanji_font', label: 'Kanji Character Font', type: 'font', defaultValue: ''),
+    _ConfigField(key: 'header_card_border_radius', label: 'Header Card Corner Radius', type: 'slider', defaultValue: '16', sliderMin: 0, sliderMax: 40),
+    _ConfigField(key: 'category_card_border_radius', label: 'Category Card Corner Radius', type: 'slider', defaultValue: '16', sliderMin: 0, sliderMax: 40),
+    _ConfigField(key: 'kanji_card_border_radius', label: 'Kanji & Meaning Card Corner Radius', type: 'slider', defaultValue: '12', sliderMin: 0, sliderMax: 32),
   ],
 };
 
@@ -222,6 +235,9 @@ class _AdminContentState extends State<_AdminContent> {
   final Map<String, TextEditingController> _controllers = {};
   final Set<String> _saving = {};
   final Set<String> _saved = {};
+  final Set<String> _previewOpen = {};
+
+  bool _notifImagePreviewOpen = false;
 
   final _notifTitleController = TextEditingController();
   final _notifBodyController = TextEditingController();
@@ -366,6 +382,8 @@ class _AdminContentState extends State<_AdminContent> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _buildNotificationPanel(context),
+          _CsvUploadPanel(service: widget.service),
+          _CsvExportPanel(service: widget.service),
           _buildPromotionSection(context),
           for (final section in sectionEntries)
             Column(
@@ -451,6 +469,32 @@ class _AdminContentState extends State<_AdminContent> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
                 ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    height: 32,
+                    child: OutlinedButton.icon(
+                      onPressed: () => setState(
+                        () => _notifImagePreviewOpen = !_notifImagePreviewOpen,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: Icon(
+                        _notifImagePreviewOpen ? Icons.visibility_off : Icons.visibility,
+                        size: 16,
+                      ),
+                      label: Text(_notifImagePreviewOpen ? 'Hide' : 'Preview'),
+                    ),
+                  ),
+                ),
+                if (_notifImagePreviewOpen) ...[
+                  const SizedBox(height: 8),
+                  _ImagePreview(url: _notifImageController.text),
+                ],
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: _sendingNotif ? null : _sendNotification,
@@ -526,7 +570,7 @@ class _AdminContentState extends State<_AdminContent> {
                       style: textTheme.labelMedium?.copyWith(color: colorScheme.secondary),
                     ),
                   ),
-                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_logo_url', label: 'Logo URL', type: 'url', defaultValue: '')),
+                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_logo_url', label: 'Logo URL', type: 'image_url', defaultValue: '')),
                   const Divider(height: 28),
                   _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_name', label: 'App Name', type: 'text', defaultValue: '')),
                   const Divider(height: 28),
@@ -545,13 +589,17 @@ class _AdminContentState extends State<_AdminContent> {
   Widget _buildFieldEditor(BuildContext context, _ConfigField field) {
     final isSaving = _saving.contains(field.key);
     final isSaved = _saved.contains(field.key);
+    final isImageUrl = field.type == 'image_url';
+    final isPreviewOpen = _previewOpen.contains(field.key);
     final controller = _controllers[field.key]!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (field.type == 'font')
+        if (field.type == 'slider')
+          _buildSliderField(context, field)
+        else if (field.type == 'font')
           _FontDropdown(
             label: field.label,
             value: controller.text,
@@ -571,50 +619,586 @@ class _AdminContentState extends State<_AdminContent> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
+        if (field.type != 'slider') ...[
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: SizedBox(
-            height: 32,
-            child: isSaving
-                ? const SizedBox(
-                    width: 32,
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                  )
-                : FilledButton.tonal(
-                    onPressed: () => _save(field.key, controller.text),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: isSaved
-                          ? colorScheme.secondaryContainer
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isSaved) ...[
-                          Icon(Icons.check, size: 16, color: colorScheme.onSecondaryContainer),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(isSaved ? 'Saved' : 'Save'),
-                      ],
-                    ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (isImageUrl) ...[
+              SizedBox(
+                height: 32,
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() {
+                    if (isPreviewOpen) {
+                      _previewOpen.remove(field.key);
+                    } else {
+                      _previewOpen.add(field.key);
+                    }
+                  }),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-          ),
+                  icon: Icon(
+                    isPreviewOpen ? Icons.visibility_off : Icons.visibility,
+                    size: 16,
+                  ),
+                  label: Text(isPreviewOpen ? 'Hide' : 'Preview'),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            SizedBox(
+              height: 32,
+              child: isSaving
+                  ? const SizedBox(
+                      width: 32,
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : FilledButton.tonal(
+                      onPressed: () => _save(field.key, controller.text),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: isSaved ? colorScheme.secondaryContainer : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSaved) ...[
+                            Icon(Icons.check, size: 16, color: colorScheme.onSecondaryContainer),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(isSaved ? 'Saved' : 'Save'),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
         ),
+        if (isImageUrl && isPreviewOpen) ...[
+          const SizedBox(height: 8),
+          _ImagePreview(url: controller.text),
+        ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSliderField(BuildContext context, _ConfigField field) {
+    final isSaving = _saving.contains(field.key);
+    final isSaved = _saved.contains(field.key);
+    final controller = _controllers[field.key]!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final value = (double.tryParse(controller.text) ?? double.tryParse(field.defaultValue) ?? 0)
+        .clamp(field.sliderMin, field.sliderMax);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(field.label, style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              value.toStringAsFixed(0),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: field.sliderMin,
+          max: field.sliderMax,
+          divisions: (field.sliderMax - field.sliderMin).toInt(),
+          onChanged: (v) => setState(() => controller.text = v.toStringAsFixed(0)),
+          onChangeEnd: (v) => _save(field.key, v.toStringAsFixed(0)),
+        ),
+        if (isSaving)
+          const Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else if (isSaved)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check, size: 14, color: colorScheme.primary),
+                const SizedBox(width: 4),
+                Text('Saved', style: TextStyle(fontSize: 12, color: colorScheme.primary)),
+              ],
+            ),
+          ),
       ],
     );
   }
 
   Icon _iconForType(String type) {
     return switch (type) {
-      'url' => const Icon(Icons.link),
+      'url' || 'image_url' => const Icon(Icons.link),
       'number' => const Icon(Icons.straighten),
       'multiline' => const Icon(Icons.notes),
       _ => const Icon(Icons.text_fields),
     };
+  }
+}
+
+// ─── Image preview widget ─────────────────────────────────────────────────────
+
+class _ImagePreview extends StatelessWidget {
+  final String url;
+  const _ImagePreview({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (url.trim().isEmpty) {
+      return Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'No URL entered',
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url.trim(),
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: 120,
+            alignment: Alignment.center,
+            color: colorScheme.surfaceContainerHighest,
+            child: CircularProgressIndicator(
+              value: progress.expectedTotalBytes != null
+                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                  : null,
+              strokeWidth: 2,
+            ),
+          );
+        },
+        errorBuilder: (context, error, _) => Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: colorScheme.errorContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.broken_image_outlined, color: colorScheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Text(
+                'Could not load image',
+                style: TextStyle(color: colorScheme.onErrorContainer),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── CSV Upload panel ─────────────────────────────────────────────────────────
+
+class _CsvUploadPanel extends StatefulWidget {
+  final KanjiService service;
+  const _CsvUploadPanel({required this.service});
+
+  @override
+  State<_CsvUploadPanel> createState() => _CsvUploadPanelState();
+}
+
+class _CsvUploadPanelState extends State<_CsvUploadPanel> {
+  List<Map<String, dynamic>>? _parsed;
+  String? _fileName;
+  String? _parseError;
+  bool _uploading = false;
+  String? _resultMessage;
+  bool _resultIsError = false;
+
+  static const _expectedHeaders = ['category_id', 'kanji', 'reading', 'meaning'];
+
+  Future<void> _pickAndParse() async {
+    setState(() {
+      _parsed = null;
+      _fileName = null;
+      _parseError = null;
+      _resultMessage = null;
+    });
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      setState(() => _parseError = 'Could not read file bytes.');
+      return;
+    }
+
+    final content = utf8.decode(bytes, allowMalformed: true);
+    final lines = content.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
+
+    if (lines.isEmpty) {
+      setState(() => _parseError = 'File is empty.');
+      return;
+    }
+
+    // Detect if first line is a header
+    final firstCols = _splitCsvLine(lines.first).map((c) => c.toLowerCase().trim()).toList();
+    final hasHeader = _expectedHeaders.every((h) => firstCols.contains(h));
+    final dataLines = hasHeader ? lines.skip(1).toList() : lines;
+
+    // Determine column indices
+    final int ciCategoryId = hasHeader ? firstCols.indexOf('category_id') : 0;
+    final int ciKanji      = hasHeader ? firstCols.indexOf('kanji')       : 1;
+    final int ciReading    = hasHeader ? firstCols.indexOf('reading')     : 2;
+    final int ciMeaning    = hasHeader ? firstCols.indexOf('meaning')     : 3;
+    final int ciSortOrder  = hasHeader ? firstCols.indexOf('sort_order')  : 4;
+
+    final rows = <Map<String, dynamic>>[];
+    final errors = <String>[];
+
+    for (int i = 0; i < dataLines.length; i++) {
+      final lineNum = hasHeader ? i + 2 : i + 1;
+      final cols = _splitCsvLine(dataLines[i]);
+
+      if (cols.length < 4) {
+        errors.add('Line $lineNum: expected at least 4 columns, got ${cols.length}');
+        continue;
+      }
+
+      final categoryId = int.tryParse(cols[ciCategoryId].trim());
+      if (categoryId == null) {
+        errors.add('Line $lineNum: category_id "${cols[ciCategoryId]}" is not a valid integer');
+        continue;
+      }
+
+      final row = <String, dynamic>{
+        'category_id': categoryId,
+        'kanji': cols[ciKanji].trim(),
+        'reading': cols[ciReading].trim(),
+        'meaning': cols[ciMeaning].trim(),
+      };
+
+      if (ciSortOrder >= 0 && ciSortOrder < cols.length) {
+        final so = int.tryParse(cols[ciSortOrder].trim());
+        if (so != null) row['sort_order'] = so;
+      }
+
+      rows.add(row);
+    }
+
+    if (errors.isNotEmpty && rows.isEmpty) {
+      setState(() => _parseError = errors.take(5).join('\n'));
+      return;
+    }
+
+    setState(() {
+      _parsed = rows;
+      _fileName = file.name;
+      if (errors.isNotEmpty) {
+        _parseError = 'Skipped ${errors.length} invalid row(s). First error: ${errors.first}';
+      }
+    });
+  }
+
+  // Minimal CSV line splitter supporting double-quoted fields.
+  static List<String> _splitCsvLine(String line) {
+    final fields = <String>[];
+    final buf = StringBuffer();
+    bool inQuotes = false;
+    for (int i = 0; i < line.length; i++) {
+      final ch = line[i];
+      if (ch == '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
+          buf.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch == ',' && !inQuotes) {
+        fields.add(buf.toString());
+        buf.clear();
+      } else {
+        buf.write(ch);
+      }
+    }
+    fields.add(buf.toString());
+    return fields;
+  }
+
+  Future<void> _upload() async {
+    final rows = _parsed;
+    if (rows == null || rows.isEmpty) return;
+
+    setState(() {
+      _uploading = true;
+      _resultMessage = null;
+    });
+
+    try {
+      final count = await widget.service.bulkInsertKanjiItems(rows);
+      if (mounted) {
+        setState(() {
+          _resultMessage = 'Successfully inserted $count row(s).';
+          _resultIsError = false;
+          _parsed = null;
+          _fileName = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _resultMessage = 'Upload failed: $e';
+          _resultIsError = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            'CSV Data Import',
+            style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Upload a CSV file to insert kanji items into the database.\n'
+                  'Required columns: category_id, kanji, reading, meaning\n'
+                  'Optional column: sort_order\n'
+                  'A header row is auto-detected; column order follows the header.',
+                  style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: _uploading ? null : _pickAndParse,
+                  icon: const Icon(Icons.upload_file),
+                  label: Text(_fileName != null ? _fileName! : 'Pick CSV File'),
+                ),
+                if (_parseError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _parseError!,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: _parsed != null ? colorScheme.tertiary : colorScheme.error,
+                    ),
+                  ),
+                ],
+                if (_parsed != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    '${_parsed!.length} row(s) ready to insert.',
+                    style: textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _uploading ? null : _upload,
+                    icon: _uploading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.cloud_upload),
+                    label: Text(_uploading ? 'Uploading…' : 'Upload to Supabase'),
+                  ),
+                ],
+                if (_resultMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _resultMessage!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: _resultIsError ? colorScheme.error : colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── CSV Export panel ─────────────────────────────────────────────────────────
+
+class _CsvExportPanel extends StatefulWidget {
+  final KanjiService service;
+  const _CsvExportPanel({required this.service});
+
+  @override
+  State<_CsvExportPanel> createState() => _CsvExportPanelState();
+}
+
+class _CsvExportPanelState extends State<_CsvExportPanel> {
+  bool _exporting = false;
+  String? _resultMessage;
+  bool _resultIsError = false;
+
+  static String _escapeCsv(String value) {
+    if (value.contains(',') || value.contains('"') || value.contains('\n')) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+    return value;
+  }
+
+  static String _buildCsv(List<Map<String, dynamic>> rows) {
+    final buf = StringBuffer();
+    buf.writeln('id,category_id,category_name,kanji,reading,meaning,sort_order');
+    for (final row in rows) {
+      final categoryName = (row['categories'] as Map<String, dynamic>?)?['name'] ?? '';
+      buf.writeln([
+        row['id']?.toString() ?? '',
+        row['category_id']?.toString() ?? '',
+        _escapeCsv(categoryName.toString()),
+        _escapeCsv(row['kanji']?.toString() ?? ''),
+        _escapeCsv(row['reading']?.toString() ?? ''),
+        _escapeCsv(row['meaning']?.toString() ?? ''),
+        row['sort_order']?.toString() ?? '',
+      ].join(','));
+    }
+    return buf.toString();
+  }
+
+  Future<void> _export() async {
+    setState(() {
+      _exporting = true;
+      _resultMessage = null;
+    });
+
+    try {
+      final rows = await widget.service.fetchAllKanjiItemsForExport();
+      final csv = _buildCsv(rows);
+      final bytes = utf8.encode(csv);
+      final fileName = 'kanji_export_${DateTime.now().millisecondsSinceEpoch}.csv';
+
+      final dir = await getTemporaryDirectory();
+      final file = io.File('${dir.path}/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv', name: fileName)],
+          subject: 'Kanji Data Export',
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _resultMessage = 'Exported ${rows.length} row(s).';
+          _resultIsError = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _resultMessage = 'Export failed: $e';
+          _resultIsError = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            'CSV Data Export',
+            style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Download all kanji items as a CSV file.\n'
+                  'Columns: id, category_id, category_name, kanji, reading, meaning, sort_order',
+                  style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _exporting ? null : _export,
+                  icon: _exporting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.download),
+                  label: Text(_exporting ? 'Exporting…' : 'Export as CSV'),
+                ),
+                if (_resultMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _resultMessage!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: _resultIsError ? colorScheme.error : colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

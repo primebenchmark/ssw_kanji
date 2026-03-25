@@ -66,6 +66,16 @@ class CategoryCard extends StatelessWidget {
           appState.configValue('category_card_vertical_padding', '16'),
         ) ??
         16.0;
+    final cardRadius = double.tryParse(
+          appState.configValue('category_card_border_radius', '16'),
+        ) ??
+        16.0;
+    final borderRadius16 = BorderRadius.all(Radius.circular(cardRadius));
+    final borderRadiusTop16 = BorderRadius.vertical(top: Radius.circular(cardRadius));
+    final cardDecoration = (isDark ? _kDarkCardDecoration : _kLightCardDecoration)
+        .copyWith(borderRadius: borderRadius16);
+    final highlightDecoration = (isDark ? _kDarkHighlightDecoration : _kLightHighlightDecoration)
+        .copyWith(borderRadius: borderRadiusTop16);
     final categoryFontKey = appState.configValue('category_font', '');
     final baseStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w600,
@@ -82,7 +92,7 @@ class CategoryCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: RepaintBoundary(
         child: DecoratedBox(
-          decoration: isDark ? _kDarkCardDecoration : _kLightCardDecoration,
+          decoration: cardDecoration,
           child: Stack(
             children: [
               Positioned(
@@ -91,16 +101,16 @@ class CategoryCard extends StatelessWidget {
                 right: 0,
                 height: 40,
                 child: ClipRRect(
-                  borderRadius: _kBorderRadiusTop16,
+                  borderRadius: borderRadiusTop16,
                   child: DecoratedBox(
-                    decoration: isDark ? _kDarkHighlightDecoration : _kLightHighlightDecoration,
+                    decoration: highlightDecoration,
                   ),
                 ),
               ),
               Column(
                 children: [
                   InkWell(
-                    borderRadius: _kBorderRadius16,
+                    borderRadius: borderRadius16,
                     onTap: () => appState.toggleCategory(category.id),
                     child: Padding(
                       padding: EdgeInsets.symmetric(

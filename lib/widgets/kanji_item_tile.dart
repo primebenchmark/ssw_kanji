@@ -25,6 +25,9 @@ class KanjiItemTile extends StatelessWidget {
     final vertPadding = context.select<AppState, double>(
       (s) => double.tryParse(s.configValue('kanji_item_vertical_padding', '12')) ?? 12.0,
     );
+    final kanjiCardRadius = context.select<AppState, double>(
+      (s) => double.tryParse(s.configValue('kanji_card_border_radius', '12')) ?? 12.0,
+    );
 
     TextStyle? kanjiStyle = theme.textTheme.headlineMedium?.copyWith(
       fontSize: kanjiSize,
@@ -43,7 +46,7 @@ class KanjiItemTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: vertPadding),
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.all(Radius.circular(kanjiCardRadius)),
         color: isMemorized
             ? const Color(0xFF2ECC71)
             : isDark ? const Color(0x0DFFFFFF) : const Color(0x4DFFFFFF),

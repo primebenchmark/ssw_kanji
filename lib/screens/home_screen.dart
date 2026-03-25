@@ -139,6 +139,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFloatingHeader(AppState appState, bool isDark) {
+    final headerRadius = double.tryParse(
+          appState.configValue('header_card_border_radius', '16'),
+        ) ??
+        16.0;
+    final headerBorderRadius = BorderRadius.all(Radius.circular(headerRadius));
+    final headerDecoration = (isDark ? _kDarkHeaderDecoration : _kLightHeaderDecoration)
+        .copyWith(borderRadius: headerBorderRadius);
+    final glossDecoration = (isDark ? _kDarkGlossDecoration : _kLightGlossDecoration)
+        .copyWith(borderRadius: BorderRadius.vertical(top: Radius.circular(headerRadius)));
+
     return RepaintBoundary(
       child: Padding(
         padding: EdgeInsets.only(
@@ -148,13 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
           bottom: 8,
         ),
         child: ClipRRect(
-          borderRadius: _kHeaderBorderRadius,
+          borderRadius: headerBorderRadius,
           child: BackdropFilter(
             filter: _kHeaderBlurFilter,
             child: Container(
-              decoration: isDark
-                  ? _kDarkHeaderDecoration
-                  : _kLightHeaderDecoration,
+              decoration: headerDecoration,
               child: Stack(
                 children: [
                   // Background image (optional)
@@ -173,9 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: 0,
                     height: 30,
                     child: DecoratedBox(
-                      decoration: isDark
-                          ? _kDarkGlossDecoration
-                          : _kLightGlossDecoration,
+                      decoration: glossDecoration,
                     ),
                   ),
                   Padding(

@@ -51,4 +51,32 @@ class KanjiService {
         .from('app_config')
         .upsert({'key': key, 'value': value}, onConflict: 'key');
   }
+
+  /// Returns all kanji items joined with their category name, ordered by
+  /// category sort_order then item sort_order.
+  Future<List<Map<String, dynamic>>> fetchAllKanjiItemsForExport() async {
+    final data = await _client
+        .from('kanji_items')
+        .select('id, category_id, categories(name), kanji, reading, meaning, sort_order')
+        .order('sort_order');
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  /// Inserts rows into kanji_items in batches. Each map must have at minimum:
+  /// category_id (int), kanji, reading, meaning. sort_order is optional.
+  Future<int> bulkInsertKanjiItems(
+    List<Map<String, dynamic>> rows, {
+    int batchSize = 200,
+  }) async {
+    int inserted = 0;
+    for (int i = 0; i < rows.length; i += batchSize) {
+      final batch = rows.sublist(
+        i,
+        (i + batchSize).clamp(0, rows.length),
+      );
+      await _client.from('kanji_items').insert(batch);
+      inserted += batch.length;
+    }
+    return inserted;
+  }
 }
