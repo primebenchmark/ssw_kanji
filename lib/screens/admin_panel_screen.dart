@@ -28,6 +28,7 @@ const _sections = <String, List<_ConfigField>>{
     _ConfigField(key: 'footer_text', label: 'Footer Company Name', type: 'text', defaultValue: 'Prime Benchmark Private Limited'),
     _ConfigField(key: 'share_android_url', label: 'Android Store URL', type: 'url', defaultValue: 'https://play.google.com/store/apps/details?id=com.ssw.kanji'),
     _ConfigField(key: 'share_ios_url', label: 'iOS Store URL', type: 'url', defaultValue: 'https://apps.apple.com/app/ssw-kanji'),
+    _ConfigField(key: 'header_link_url', label: 'Header Link URL (tap left of nav bar, leave empty to disable)', type: 'url', defaultValue: ''),
   ],
   'Contact': [
     _ConfigField(key: 'contact_whatsapp_url', label: 'WhatsApp URL (leave empty to hide)', type: 'url', defaultValue: ''),

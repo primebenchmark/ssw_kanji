@@ -31,6 +31,13 @@ class _KanjiAppState extends State<KanjiApp> {
       scaffoldBackgroundColor: Colors.transparent,
       appBarTheme: _appBarTheme,
       textTheme: GoogleFonts.getTextTheme(fontFamily),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _FastSlideTransitionBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: _FastSlideTransitionBuilder(),
+        },
+      ),
     );
     _darkTheme = ThemeData(
       colorSchemeSeed: const Color(0xFF7B8FAD),
@@ -41,6 +48,13 @@ class _KanjiAppState extends State<KanjiApp> {
       textTheme: GoogleFonts.getTextTheme(
         fontFamily,
         ThemeData(brightness: Brightness.dark).textTheme,
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _FastSlideTransitionBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: _FastSlideTransitionBuilder(),
+        },
       ),
     );
   }
@@ -68,20 +82,54 @@ class _KanjiAppState extends State<KanjiApp> {
       darkTheme: _darkTheme,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Container(
+        // AnimatedContainer smooths the gradient transition during theme switch
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: isDark
-                  ? [const Color(0xFF1A2332), const Color(0xFF0F1923)]
-                  : [const Color(0xFFCDD5DE), const Color(0xFFB0BCC9)],
+                  ? const [Color(0xFF1A2332), Color(0xFF0F1923)]
+                  : const [Color(0xFFCDD5DE), Color(0xFFB0BCC9)],
             ),
           ),
           child: child,
         );
       },
       home: const HomeScreen(),
+    );
+  }
+}
+
+/// Fast 200ms slide+fade page transition for snappy navigation
+class _FastSlideTransitionBuilder extends PageTransitionsBuilder {
+  const _FastSlideTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // Use a faster curve and shorter effective duration feel
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.08, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
     );
   }
 }

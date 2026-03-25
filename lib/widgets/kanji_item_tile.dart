@@ -13,15 +13,20 @@ class KanjiItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final appState = context.watch<AppState>();
 
-    final vertPadding = double.tryParse(
-          appState.configValue('kanji_item_vertical_padding', '12'),
-        ) ??
-        12.0;
-    final kanjiFontKey = appState.configValue('kanji_font', '');
+    // Use context.select to only rebuild when the specific values we use change,
+    // not on every AppState notification (e.g. search query, expanded categories)
+    final kanjiSize = context.select<AppState, double>((s) => s.kanjiSize);
+    final meaningSize = context.select<AppState, double>((s) => s.meaningSize);
+    final kanjiFontKey = context.select<AppState, String>(
+      (s) => s.configValue('kanji_font', ''),
+    );
+    final vertPadding = context.select<AppState, double>(
+      (s) => double.tryParse(s.configValue('kanji_item_vertical_padding', '12')) ?? 12.0,
+    );
+
     TextStyle? kanjiStyle = theme.textTheme.headlineMedium?.copyWith(
-      fontSize: appState.kanjiSize,
+      fontSize: kanjiSize,
       fontWeight: FontWeight.bold,
       color: isDark ? const Color(0xE6FFFFFF) : const Color(0xFF2C3E50),
     );
@@ -62,7 +67,7 @@ class KanjiItemTile extends StatelessWidget {
                   item.meaning,
                   textAlign: TextAlign.right,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: appState.meaningSize,
+                    fontSize: meaningSize,
                     color: isDark
                         ? Colors.white54
                         : const Color(0xFF5A6A7A),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category.dart';
@@ -19,6 +20,9 @@ class AppState extends ChangeNotifier {
   bool _isLoading = true;
   String? _error;
 
+  // Throttle preferences saves to avoid disk I/O spam during slider drags
+  Timer? _saveTimer;
+
   ThemeMode get themeMode => _themeMode;
   String get fontFamily => _fontFamily;
   double get kanjiSize => _kanjiSize;
@@ -27,6 +31,7 @@ class AppState extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Category> get categories => _categories;
+  bool get isDark => _themeMode == ThemeMode.dark;
 
   String configValue(String key, String defaultValue) {
     final v = _appConfig[key];
@@ -54,25 +59,25 @@ class AppState extends ChangeNotifier {
   void toggleTheme() {
     _themeMode =
         _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    _savePreferences();
+    _scheduleSave();
     notifyListeners();
   }
 
   void setFont(String font) {
     _fontFamily = font;
-    _savePreferences();
+    _scheduleSave();
     notifyListeners();
   }
 
   void setKanjiSize(double size) {
     _kanjiSize = size;
-    _savePreferences();
+    _scheduleSave();
     notifyListeners();
   }
 
   void setMeaningSize(double size) {
     _meaningSize = size;
-    _savePreferences();
+    _scheduleSave();
     notifyListeners();
   }
 
@@ -112,7 +117,14 @@ class AppState extends ChangeNotifier {
       }
       _isLoading = false;
     } catch (e) {
-      _error = e.toString();
+      final msg = e.toString();
+      if (msg.contains('SocketException') ||
+          msg.contains('Failed host lookup') ||
+          msg.contains('ClientException')) {
+        _error = 'No internet connection. Please check your network and try again.';
+      } else {
+        _error = 'Failed to load data. Please try again.';
+      }
       _isLoading = false;
     }
     notifyListeners();
@@ -134,11 +146,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Throttled save: coalesces rapid changes (e.g. slider drags) into one write
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), _savePreferences);
+  }
+
   Future<void> _savePreferences() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkTheme', _themeMode == ThemeMode.dark);
     await prefs.setString('fontFamily', _fontFamily);
     await prefs.setDouble('kanjiSize', _kanjiSize);
     await prefs.setDouble('meaningSize', _meaningSize);
+  }
+
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    // Ensure final state is persisted
+    _savePreferences();
+    super.dispose();
   }
 }

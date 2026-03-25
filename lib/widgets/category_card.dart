@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -11,22 +10,15 @@ const _kBorderRadius16 = BorderRadius.all(Radius.circular(16));
 const _kBorderRadius8 = BorderRadius.all(Radius.circular(8));
 const _kBorderRadiusTop16 = BorderRadius.vertical(top: Radius.circular(16));
 
-const _kDarkGradientColors = [Color(0x14FFFFFF), Color(0x0AFFFFFF)]; // 0.08, 0.04 alpha
-const _kLightGradientColors = [Color(0xA6FFFFFF), Color(0x59FFFFFF)]; // 0.65, 0.35 alpha
-const _kDarkBorderColor = Color(0x1FFFFFFF); // 0.12 alpha
-const _kLightBorderColor = Color(0xCCFFFFFF); // 0.8 alpha
-const _kDarkHighlightColor = Color(0x14FFFFFF); // 0.08 alpha
-const _kLightHighlightColor = Color(0x66FFFFFF); // 0.4 alpha
-const _kTransparent = Color(0x00FFFFFF);
-
+// Lightweight glassmorphism: semi-transparent fills instead of BackdropFilter
 const _kDarkCardDecoration = BoxDecoration(
   borderRadius: _kBorderRadius16,
   gradient: LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: _kDarkGradientColors,
+    colors: [Color(0x28374A5F), Color(0x1A2A3D52)],
   ),
-  border: Border.fromBorderSide(BorderSide(color: _kDarkBorderColor)),
+  border: Border.fromBorderSide(BorderSide(color: Color(0x1FFFFFFF))),
 );
 
 const _kLightCardDecoration = BoxDecoration(
@@ -34,9 +26,9 @@ const _kLightCardDecoration = BoxDecoration(
   gradient: LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: _kLightGradientColors,
+    colors: [Color(0xB8FFFFFF), Color(0x80FFFFFF)],
   ),
-  border: Border.fromBorderSide(BorderSide(color: _kLightBorderColor)),
+  border: Border.fromBorderSide(BorderSide(color: Color(0xCCFFFFFF))),
 );
 
 const _kDarkHighlightDecoration = BoxDecoration(
@@ -44,7 +36,7 @@ const _kDarkHighlightDecoration = BoxDecoration(
   gradient: LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [_kDarkHighlightColor, _kTransparent],
+    colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)],
   ),
 );
 
@@ -53,11 +45,9 @@ const _kLightHighlightDecoration = BoxDecoration(
   gradient: LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [_kLightHighlightColor, _kTransparent],
+    colors: [Color(0x66FFFFFF), Color(0x00FFFFFF)],
   ),
 );
-
-final _kBlurFilter = ImageFilter.blur(sigmaX: 12, sigmaY: 12);
 
 class CategoryCard extends StatelessWidget {
   final Category category;
@@ -69,7 +59,6 @@ class CategoryCard extends StatelessWidget {
     final theme = Theme.of(context);
     final appState = context.watch<AppState>();
     final isExpanded = appState.isCategoryExpanded(category.id);
-    final items = appState.itemsForCategory(category.id);
     final totalCount = appState.itemCountForCategory(category.id);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -91,107 +80,131 @@ class CategoryCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: ClipRRect(
-        borderRadius: _kBorderRadius16,
-        child: BackdropFilter(
-          filter: _kBlurFilter,
-          child: Container(
-            decoration: isDark ? _kDarkCardDecoration : _kLightCardDecoration,
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 40,
+      child: RepaintBoundary(
+        child: DecoratedBox(
+          decoration: isDark ? _kDarkCardDecoration : _kLightCardDecoration,
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                child: ClipRRect(
+                  borderRadius: _kBorderRadiusTop16,
                   child: DecoratedBox(
                     decoration: isDark ? _kDarkHighlightDecoration : _kLightHighlightDecoration,
                   ),
                 ),
-                Column(
-                  children: [
-                    InkWell(
-                      borderRadius: _kBorderRadius16,
-                      onTap: () => appState.toggleCategory(category.id),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 20, vertical: vertPadding),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                category.name,
-                                style: categoryNameStyle,
-                              ),
+              ),
+              Column(
+                children: [
+                  InkWell(
+                    borderRadius: _kBorderRadius16,
+                    onTap: () => appState.toggleCategory(category.id),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20, vertical: vertPadding),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              category.name,
+                              style: categoryNameStyle,
                             ),
-                            if (totalCount > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF4A6280)
-                                      : const Color(0xFFABBDD0),
-                                  borderRadius: _kBorderRadius8,
-                                ),
-                                child: Text(
-                                  '$totalCount',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: isDark
-                                        ? Colors.white70
-                                        : const Color(0xFF3A5068),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(width: 10),
-                            AnimatedRotation(
-                              turns: isExpanded ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Icon(
-                                Icons.expand_more,
+                          ),
+                          if (totalCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
                                 color: isDark
-                                    ? Colors.white54
-                                    : const Color(0xFF5A6A7A),
-                                size: 26,
+                                    ? const Color(0xFF4A6280)
+                                    : const Color(0xFFABBDD0),
+                                borderRadius: _kBorderRadius8,
+                              ),
+                              child: Text(
+                                '$totalCount',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF3A5068),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          const SizedBox(width: 10),
+                          AnimatedRotation(
+                            turns: isExpanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.expand_more,
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF5A6A7A),
+                              size: 26,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    AnimatedCrossFade(
-                      firstChild: const SizedBox.shrink(),
-                      secondChild: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth > 600) {
-                              return _buildGrid(items, 2);
-                            }
-                            return _buildList(items);
-                          },
-                        ),
-                      ),
-                      crossFadeState: isExpanded
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 250),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  // AnimatedSize is much lighter than AnimatedCrossFade:
+                  // it only keeps one child and smoothly animates the clip.
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.hardEdge,
+                    child: isExpanded
+                        ? _ExpandedContent(
+                            key: ValueKey('expanded_${category.id}'),
+                            category: category,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Extracted expanded content to avoid rebuilding item lists
+/// when the card header changes.
+class _ExpandedContent extends StatelessWidget {
+  final Category category;
+
+  const _ExpandedContent({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final items = appState.itemsForCategory(category.id);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 600) {
+            return _buildGrid(items, 2);
+          }
+          return _buildList(items);
+        },
       ),
     );
   }
 
   Widget _buildList(List items) {
     return Column(
-      children: items.map((item) => KanjiItemTile(item: item)).toList(),
+      children: [
+        for (final item in items)
+          KanjiItemTile(key: ValueKey(item.id), item: item),
+      ],
     );
   }
 
@@ -205,9 +218,9 @@ class CategoryCard extends StatelessWidget {
             for (var j = 0; j < columns; j++)
               Expanded(
                 child: j < rowItems.length
-                    ? KanjiItemTile(item: rowItems[j])
+                    ? KanjiItemTile(key: ValueKey(rowItems[j].id), item: rowItems[j])
                     : const SizedBox.shrink(),
-          ),
+              ),
           ],
         ),
       );

@@ -65,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          // Theme toggle — top of page
+          // Theme toggle
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -79,7 +79,7 @@ class SettingsScreen extends StatelessWidget {
               secondary: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 transitionBuilder: (child, animation) =>
-                    RotationTransition(turns: animation, child: child),
+                    FadeTransition(opacity: animation, child: child),
                 child: Icon(
                   isDark ? Icons.dark_mode : Icons.light_mode,
                   key: ValueKey(isDark),
@@ -307,7 +307,7 @@ class _PromoAppCard extends StatelessWidget {
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, _) => _placeholderIcon(colorScheme),
+                      errorBuilder: (_, _, _) => _placeholderIcon(colorScheme),
                     )
                   : _placeholderIcon(colorScheme),
             ),

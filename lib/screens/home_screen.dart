@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/app_state.dart';
 import '../services/kanji_service.dart';
@@ -122,137 +123,115 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFloatingHeader(AppState appState, bool isDark) {
-    return Padding(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 16,
-        right: 16,
-        bottom: 8,
-      ),
-      child: ClipRRect(
-        borderRadius: _kHeaderBorderRadius,
-        child: BackdropFilter(
-          filter: _kHeaderBlurFilter,
-          child: Container(
-            decoration: isDark
-                ? _kDarkHeaderDecoration
-                : _kLightHeaderDecoration,
-            child: Stack(
-              children: [
-                // Glossy highlight
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 30,
-                  child: DecoratedBox(
-                    decoration: isDark
-                        ? _kDarkGlossDecoration
-                        : _kLightGlossDecoration,
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8,
+          left: 16,
+          right: 16,
+          bottom: 8,
+        ),
+        child: ClipRRect(
+          borderRadius: _kHeaderBorderRadius,
+          child: BackdropFilter(
+            filter: _kHeaderBlurFilter,
+            child: Container(
+              decoration: isDark
+                  ? _kDarkHeaderDecoration
+                  : _kLightHeaderDecoration,
+              child: Stack(
+                children: [
+                  // Glossy highlight
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 30,
+                    child: DecoratedBox(
+                      decoration: isDark
+                          ? _kDarkGlossDecoration
+                          : _kLightGlossDecoration,
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 8,
-                    right: 4,
-                    top: 12,
-                    bottom: 12,
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      right: 4,
+                      top: 12,
+                      bottom: 12,
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: _isSearching
+                          ? Row(
+                              key: const ValueKey('search'),
+                              children: [
+                                Expanded(
+                                  child: KanjiSearchBar(
+                                    focusNode: _searchFocusNode,
+                                    onClose: () {
+                                      setState(() => _isSearching = false);
+                                      context.read<AppState>().setSearchQuery('');
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              key: const ValueKey('header'),
+                              children: [
+                                Expanded(
+                                  child: _HeaderTitleArea(
+                                    appState: appState,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                _AppBarIconButton(
+                                  icon: Icons.search,
+                                  label: 'Search',
+                                  onPressed: () {
+                                    setState(() => _isSearching = true);
+                                    WidgetsBinding.instance.addPostFrameCallback(
+                                      (_) => _searchFocusNode.requestFocus(),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 2),
+                                _AppBarIconButton(
+                                  icon: Icons.ios_share_outlined,
+                                  label: 'Share',
+                                  onPressed: () => _share(context),
+                                ),
+                                const SizedBox(width: 2),
+                                _AppBarIconButton(
+                                  icon: Icons.phone_outlined,
+                                  label: 'Support',
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const SupportScreen(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                _AppBarIconButton(
+                                  icon: Icons.settings_outlined,
+                                  label: 'Setting',
+                                  onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const SettingsScreen(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
-                  child: _isSearching
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: KanjiSearchBar(
-                                focusNode: _searchFocusNode,
-                                onClose: () {
-                                  setState(() => _isSearching = false);
-                                  context.read<AppState>().setSearchQuery('');
-                                },
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    appState.configValue(
-                                      'app_name',
-                                      'SSW Kanji',
-                                    ),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 20,
-                                      color: isDark
-                                          ? Colors.white
-                                          : const Color(0xFF2C3E50),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    appState.configValue(
-                                      'app_by_text',
-                                      'Prime Benchmark Private Limited',
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : const Color(0xFF5A6A7A),
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            _AppBarIconButton(
-                              icon: Icons.search,
-                              label: 'Search',
-                              onPressed: () {
-                                setState(() => _isSearching = true);
-                                WidgetsBinding.instance.addPostFrameCallback(
-                                  (_) => _searchFocusNode.requestFocus(),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 2),
-                            _AppBarIconButton(
-                              icon: Icons.ios_share_outlined,
-                              label: 'Share',
-                              onPressed: () => _share(context),
-                            ),
-                            const SizedBox(width: 2),
-                            _AppBarIconButton(
-                              icon: Icons.phone_outlined,
-                              label: 'Support',
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SupportScreen(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            _AppBarIconButton(
-                              icon: Icons.settings_outlined,
-                              label: 'Setting',
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -361,9 +340,60 @@ class _HomeScreenState extends State<HomeScreen> {
               if (index == visibleCategories.length) {
                 return _buildFooter(context, appState);
               }
-              return CategoryCard(category: visibleCategories[index]);
+              final cat = visibleCategories[index];
+              return CategoryCard(
+                key: ValueKey(cat.id),
+                category: cat,
+              );
             },
           );
+  }
+}
+
+class _HeaderTitleArea extends StatelessWidget {
+  const _HeaderTitleArea({required this.appState, required this.isDark});
+
+  final AppState appState;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final headerLinkUrl = appState.configValue('header_link_url', '');
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          appState.configValue('app_name', 'SSW Kanji'),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: isDark ? Colors.white : const Color(0xFF2C3E50),
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          appState.configValue('app_by_text', 'Prime Benchmark Private Limited'),
+          style: TextStyle(
+            fontSize: 10,
+            color: isDark ? Colors.white54 : const Color(0xFF5A6A7A),
+            fontWeight: FontWeight.w400,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      ],
+    );
+
+    if (headerLinkUrl.isEmpty) return column;
+
+    return GestureDetector(
+      onTap: () => launchUrl(
+        Uri.parse(headerLinkUrl),
+        mode: LaunchMode.externalApplication,
+      ),
+      child: column,
+    );
   }
 }
 
