@@ -157,6 +157,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   : _kLightHeaderDecoration,
               child: Stack(
                 children: [
+                  // Background image (optional)
+                  if (appState.configValue('header_bg_image_url', '').isNotEmpty)
+                    Positioned.fill(
+                      child: Image.network(
+                        appState.configValue('header_bg_image_url', ''),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, _) => const SizedBox.shrink(),
+                      ),
+                    ),
                   // Glossy highlight
                   Positioned(
                     top: 0,
