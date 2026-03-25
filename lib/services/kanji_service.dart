@@ -15,10 +15,21 @@ class KanjiService {
     return data.map((e) => Category.fromJson(e)).toList();
   }
 
-  Future<List<KanjiItem>> fetchAllItems() async {
+  Future<Map<int, int>> fetchItemCounts() async {
+    final data = await _client.from('kanji_items').select('category_id');
+    final counts = <int, int>{};
+    for (final row in data) {
+      final id = row['category_id'] as int;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  Future<List<KanjiItem>> fetchItemsByCategory(int categoryId) async {
     final data = await _client
         .from('kanji_items')
         .select()
+        .eq('category_id', categoryId)
         .order('sort_order');
     return data.map((e) => KanjiItem.fromJson(e)).toList();
   }

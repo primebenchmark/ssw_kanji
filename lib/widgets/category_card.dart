@@ -158,10 +158,26 @@ class CategoryCard extends StatelessWidget {
                     alignment: Alignment.topCenter,
                     clipBehavior: Clip.hardEdge,
                     child: isExpanded
-                        ? _ExpandedContent(
-                            key: ValueKey('expanded_${category.id}'),
-                            category: category,
-                          )
+                        ? appState.isCategoryLoading(category.id)
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : const Color(0xFF5A6A7A),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : _ExpandedContent(
+                                key: ValueKey('expanded_${category.id}'),
+                                category: category,
+                              )
                         : const SizedBox.shrink(),
                   ),
                 ],

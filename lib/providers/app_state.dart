@@ -7,9 +7,12 @@ import '../services/kanji_service.dart';
 
 class AppState extends ChangeNotifier {
   List<Category> _categories = [];
-  List<KanjiItem> _allItems = [];
+  Map<int, int> _itemCounts = {};
   Map<int, List<KanjiItem>> _itemsByCategory = {};
+  final Set<int> _loadedCategories = {};
+  final Set<int> _loadingCategories = {};
   Map<String, String> _appConfig = {};
+  KanjiService? _service;
 
   ThemeMode _themeMode = ThemeMode.light;
   String _fontFamily = 'Noto Serif JP';
@@ -39,6 +42,7 @@ class AppState extends ChangeNotifier {
   }
 
   bool isCategoryExpanded(int id) => _expandedCategories.contains(id);
+  bool isCategoryLoading(int id) => _loadingCategories.contains(id);
 
   List<KanjiItem> itemsForCategory(int categoryId) {
     final items = _itemsByCategory[categoryId] ?? [];
@@ -47,11 +51,14 @@ class AppState extends ChangeNotifier {
   }
 
   int itemCountForCategory(int categoryId) {
-    return _itemsByCategory[categoryId]?.length ?? 0;
+    // Use loaded items if available, fall back to pre-fetched counts
+    return _itemsByCategory[categoryId]?.length ?? _itemCounts[categoryId] ?? 0;
   }
 
   bool categoryHasResults(int categoryId) {
     if (_searchQuery.isEmpty) return true;
+    // If not yet loaded, optimistically show category (items may match once loaded)
+    if (!_loadedCategories.contains(categoryId)) return true;
     final items = _itemsByCategory[categoryId] ?? [];
     return items.any((i) => i.matchesSearch(_searchQuery));
   }
@@ -86,6 +93,7 @@ class AppState extends ChangeNotifier {
     if (query.isNotEmpty) {
       for (final cat in _categories) {
         _expandedCategories.add(cat.id);
+        _loadCategoryItems(cat.id);
       }
     } else {
       _expandedCategories.clear();
@@ -98,23 +106,49 @@ class AppState extends ChangeNotifier {
       _expandedCategories.remove(id);
     } else {
       _expandedCategories.add(id);
+      _loadCategoryItems(id);
     }
     notifyListeners();
+  }
+
+  void _loadCategoryItems(int categoryId) {
+    if (_loadedCategories.contains(categoryId)) return;
+    if (_loadingCategories.contains(categoryId)) return;
+    final service = _service;
+    if (service == null) return;
+
+    _loadingCategories.add(categoryId);
+    notifyListeners();
+
+    service.fetchItemsByCategory(categoryId).then((items) {
+      _itemsByCategory[categoryId] = items;
+      _loadedCategories.add(categoryId);
+      _loadingCategories.remove(categoryId);
+      notifyListeners();
+    }).catchError((_) {
+      _loadingCategories.remove(categoryId);
+      notifyListeners();
+    });
   }
 
   Future<void> loadData(KanjiService service) async {
     _isLoading = true;
     _error = null;
+    _loadedCategories.clear();
+    _loadingCategories.clear();
+    _itemsByCategory = {};
     notifyListeners();
 
     try {
-      _categories = await service.fetchCategories();
-      _allItems = await service.fetchAllItems();
-      _appConfig = await service.fetchAppConfig();
-      _itemsByCategory = {};
-      for (final item in _allItems) {
-        _itemsByCategory.putIfAbsent(item.categoryId, () => []).add(item);
-      }
+      _service = service;
+      final results = await Future.wait([
+        service.fetchCategories(),
+        service.fetchItemCounts(),
+        service.fetchAppConfig(),
+      ]);
+      _categories = results[0] as List<Category>;
+      _itemCounts = results[1] as Map<int, int>;
+      _appConfig = results[2] as Map<String, String>;
       _isLoading = false;
     } catch (e) {
       final msg = e.toString();
