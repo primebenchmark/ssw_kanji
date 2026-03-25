@@ -289,7 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFooter(BuildContext context, AppState appState) {
     final year = DateTime.now().year;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
+    final footerLinkUrl = appState.configValue('footer_link_url', '');
+    final text = Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         '\u00A9 $year ${appState.configValue('footer_text', 'Prime Benchmark Private Limited')} \u00B7 ${appState.configValue('app_name', 'SSW Kanji')}',
@@ -301,6 +302,14 @@ class _HomeScreenState extends State<HomeScreen> {
               : const Color(0xFF5A6A7A).withValues(alpha: 0.7),
         ),
       ),
+    );
+    if (footerLinkUrl.isEmpty) return text;
+    return GestureDetector(
+      onTap: () => launchUrl(
+        Uri.parse(footerLinkUrl),
+        mode: LaunchMode.externalApplication,
+      ),
+      child: text,
     );
   }
 
