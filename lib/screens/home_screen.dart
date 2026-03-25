@@ -279,40 +279,52 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (appState.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.cloud_off,
-                size: 64,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load data',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                appState.error!,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return RefreshIndicator(
+        onRefresh: () async {
+          final service = KanjiService(Supabase.instance.client);
+          await appState.loadData(service);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load data',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      appState.error!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        final service = KanjiService(Supabase.instance.client);
+                        appState.loadData(service);
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  final service = KanjiService(Supabase.instance.client);
-                  appState.loadData(service);
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -324,29 +336,49 @@ class _HomeScreenState extends State<HomeScreen> {
               .where((c) => appState.categoryHasResults(c.id))
               .toList();
 
-    return visibleCategories.isEmpty
-        ? Center(
-            child: Text(
-              'No results found',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+    Future<void> onRefresh() async {
+      final service = KanjiService(Supabase.instance.client);
+      await appState.loadData(service);
+    }
+
+    if (visibleCategories.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: Center(
+              child: Text(
+                'No results found',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.only(top: 4, bottom: 24),
-            itemCount: visibleCategories.length + 1,
-            itemBuilder: (context, index) {
-              if (index == visibleCategories.length) {
-                return _buildFooter(context, appState);
-              }
-              final cat = visibleCategories[index];
-              return CategoryCard(
-                key: ValueKey(cat.id),
-                category: cat,
-              );
-            },
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
+        itemCount: visibleCategories.length + 1,
+        itemBuilder: (context, index) {
+          if (index == visibleCategories.length) {
+            return _buildFooter(context, appState);
+          }
+          final cat = visibleCategories[index];
+          return CategoryCard(
+            key: ValueKey(cat.id),
+            category: cat,
           );
+        },
+      ),
+    );
   }
 }
 
