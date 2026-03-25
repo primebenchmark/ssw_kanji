@@ -23,6 +23,9 @@ class AppState extends ChangeNotifier {
   bool _isLoading = true;
   String? _error;
 
+  int? _lastCategoryId;
+  double _lastScrollOffset = 0.0;
+
   // Throttle preferences saves to avoid disk I/O spam during slider drags
   Timer? _saveTimer;
 
@@ -35,6 +38,8 @@ class AppState extends ChangeNotifier {
   String? get error => _error;
   List<Category> get categories => _categories;
   bool get isDark => _themeMode == ThemeMode.dark;
+  int? get lastCategoryId => _lastCategoryId;
+  double get lastScrollOffset => _lastScrollOffset;
 
   String configValue(String key, String defaultValue) {
     final v = _appConfig[key];
@@ -107,8 +112,25 @@ class AppState extends ChangeNotifier {
     } else {
       _expandedCategories.add(id);
       _loadCategoryItems(id);
+      _lastCategoryId = id;
+      _scheduleSave();
     }
     notifyListeners();
+  }
+
+  void saveScrollOffset(double offset) {
+    _lastScrollOffset = offset;
+    _scheduleSave();
+  }
+
+  /// Expands and loads the last studied category after app data is loaded.
+  void restoreLastCategory() {
+    final id = _lastCategoryId;
+    if (id != null && _categories.any((c) => c.id == id)) {
+      _expandedCategories.add(id);
+      _loadCategoryItems(id);
+      notifyListeners();
+    }
   }
 
   void _loadCategoryItems(int categoryId) {
@@ -177,6 +199,8 @@ class AppState extends ChangeNotifier {
     _fontFamily = prefs.getString('fontFamily') ?? 'Noto Serif JP';
     _kanjiSize = prefs.getDouble('kanjiSize') ?? 32.0;
     _meaningSize = prefs.getDouble('meaningSize') ?? 12.0;
+    _lastCategoryId = prefs.getInt('lastCategoryId');
+    _lastScrollOffset = prefs.getDouble('lastScrollOffset') ?? 0.0;
     notifyListeners();
   }
 
@@ -192,6 +216,13 @@ class AppState extends ChangeNotifier {
     await prefs.setString('fontFamily', _fontFamily);
     await prefs.setDouble('kanjiSize', _kanjiSize);
     await prefs.setDouble('meaningSize', _meaningSize);
+    final categoryId = _lastCategoryId;
+    if (categoryId != null) {
+      await prefs.setInt('lastCategoryId', categoryId);
+    } else {
+      await prefs.remove('lastCategoryId');
+    }
+    await prefs.setDouble('lastScrollOffset', _lastScrollOffset);
   }
 
   @override

@@ -60,20 +60,36 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   final _searchFocusNode = FocusNode();
+  final _scrollController = ScrollController();
+  double? _pendingScrollOffset;
 
   @override
   void dispose() {
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
       final service = KanjiService(Supabase.instance.client);
-      context.read<AppState>().loadData(service);
+      appState.loadData(service).then((_) {
+        if (!mounted) return;
+        final offset = appState.lastScrollOffset;
+        appState.restoreLastCategory();
+        if (offset > 0) {
+          setState(() => _pendingScrollOffset = offset);
+        }
+      });
     });
+  }
+
+  void _onScroll() {
+    context.read<AppState>().saveScrollOffset(_scrollController.offset);
   }
 
   String _buildShareText(AppState appState) {
@@ -244,6 +260,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final appState = context.watch<AppState>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Once the restored category finishes loading, jump to the saved scroll offset.
+    final pendingOffset = _pendingScrollOffset;
+    final lastCatId = appState.lastCategoryId;
+    if (pendingOffset != null &&
+        (lastCatId == null || !appState.isCategoryLoading(lastCatId))) {
+      _pendingScrollOffset = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(
+            pendingOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+          );
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -364,6 +395,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.builder(
+        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: 4, bottom: 24),
         itemCount: visibleCategories.length + 1,
