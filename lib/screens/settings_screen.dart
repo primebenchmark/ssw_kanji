@@ -98,7 +98,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final isDark = appState.themeMode == ThemeMode.dark;
-    final currentFont = appState.fontFamily;
+    final savedFont = appState.fontFamily;
+    final validFontValues = _fonts.map((e) => e.$1).toSet();
+    final currentFont = validFontValues.contains(savedFont) ? savedFont : _fonts.first.$1;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
