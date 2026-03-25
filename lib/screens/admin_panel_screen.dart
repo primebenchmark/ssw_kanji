@@ -29,11 +29,6 @@ const _sections = <String, List<_ConfigField>>{
     _ConfigField(key: 'share_android_url', label: 'Android Store URL', type: 'url', defaultValue: 'https://play.google.com/store/apps/details?id=com.ssw.kanji'),
     _ConfigField(key: 'share_ios_url', label: 'iOS Store URL', type: 'url', defaultValue: 'https://apps.apple.com/app/ssw-kanji'),
   ],
-  'Promotion': [
-    _ConfigField(key: 'more_apps_name', label: 'App Name', type: 'text', defaultValue: 'JFT & Skill Mock Test'),
-    _ConfigField(key: 'more_apps_description', label: 'App Description', type: 'multiline', defaultValue: 'Prepare for JFT-Basic and Skill Test with our mock test.'),
-    _ConfigField(key: 'more_apps_url', label: 'Install URL', type: 'url', defaultValue: 'https://primebenchmark.com.np/app'),
-  ],
   'Contact': [
     _ConfigField(key: 'contact_whatsapp_url', label: 'WhatsApp URL (leave empty to hide)', type: 'url', defaultValue: ''),
     _ConfigField(key: 'contact_messenger_url', label: 'Messenger URL (leave empty to hide)', type: 'url', defaultValue: ''),
@@ -201,6 +196,27 @@ class _AdminContentState extends State<_AdminContent> {
   final _notifImageController = TextEditingController();
   bool _sendingNotif = false;
 
+  int get _promoCount => int.tryParse(_controllers['more_apps_count']?.text ?? '') ?? 1;
+
+  void _ensurePromoControllers(AppState appState) {
+    if (!_controllers.containsKey('more_apps_count')) {
+      _controllers['more_apps_count'] = TextEditingController(
+        text: appState.configValue('more_apps_count', '1'),
+      );
+    }
+    final count = int.tryParse(appState.configValue('more_apps_count', '1')) ?? 1;
+    for (int i = 1; i <= count; i++) {
+      for (final suffix in ['logo_url', 'name', 'description', 'url']) {
+        final key = 'more_apps_${i}_$suffix';
+        if (!_controllers.containsKey(key)) {
+          _controllers[key] = TextEditingController(
+            text: appState.configValue(key, ''),
+          );
+        }
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -214,6 +230,7 @@ class _AdminContentState extends State<_AdminContent> {
         }
       }
     }
+    _ensurePromoControllers(appState);
   }
 
   @override
@@ -317,6 +334,7 @@ class _AdminContentState extends State<_AdminContent> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _buildNotificationPanel(context),
+          _buildPromotionSection(context),
           for (final section in sectionEntries)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,6 +431,77 @@ class _AdminContentState extends State<_AdminContent> {
                       : const Icon(Icons.send),
                   label: Text(_sendingNotif ? 'Sending...' : 'Send Notification'),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromotionSection(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final appState = context.read<AppState>();
+    final count = _promoCount;
+
+    // Ensure controllers exist for current count
+    for (int i = 1; i <= count; i++) {
+      for (final suffix in ['logo_url', 'name', 'description', 'url']) {
+        final key = 'more_apps_${i}_$suffix';
+        if (!_controllers.containsKey(key)) {
+          _controllers[key] = TextEditingController(
+            text: appState.configValue(key, ''),
+          );
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            'Promotion',
+            style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Count field
+                _buildFieldEditor(
+                  context,
+                  const _ConfigField(
+                    key: 'more_apps_count',
+                    label: 'Number of Promotional Apps',
+                    type: 'number',
+                    defaultValue: '1',
+                  ),
+                ),
+                // Per-app fields
+                for (int i = 1; i <= count; i++) ...[
+                  const Divider(height: 32),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'App $i',
+                      style: textTheme.labelMedium?.copyWith(color: colorScheme.secondary),
+                    ),
+                  ),
+                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_logo_url', label: 'Logo URL', type: 'url', defaultValue: '')),
+                  const Divider(height: 28),
+                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_name', label: 'App Name', type: 'text', defaultValue: '')),
+                  const Divider(height: 28),
+                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_description', label: 'App Description', type: 'multiline', defaultValue: '')),
+                  const Divider(height: 28),
+                  _buildFieldEditor(context, _ConfigField(key: 'more_apps_${i}_url', label: 'Install URL', type: 'url', defaultValue: '')),
+                ],
               ],
             ),
           ),

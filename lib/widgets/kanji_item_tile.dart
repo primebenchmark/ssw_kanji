@@ -21,6 +21,7 @@ class KanjiItemTile extends StatelessWidget {
         12.0;
     final kanjiFontKey = appState.configValue('kanji_font', '');
     TextStyle? kanjiStyle = theme.textTheme.headlineMedium?.copyWith(
+      fontSize: appState.kanjiSize,
       fontWeight: FontWeight.bold,
       color: isDark ? const Color(0xE6FFFFFF) : const Color(0xFF2C3E50),
     );
@@ -61,6 +62,7 @@ class KanjiItemTile extends StatelessWidget {
                   item.meaning,
                   textAlign: TextAlign.right,
                   style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: appState.meaningSize,
                     color: isDark
                         ? Colors.white54
                         : const Color(0xFF5A6A7A),

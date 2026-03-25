@@ -12,6 +12,8 @@ class AppState extends ChangeNotifier {
 
   ThemeMode _themeMode = ThemeMode.light;
   String _fontFamily = 'Noto Serif JP';
+  double _kanjiSize = 32.0;
+  double _meaningSize = 12.0;
   String _searchQuery = '';
   final Set<int> _expandedCategories = {};
   bool _isLoading = true;
@@ -19,6 +21,8 @@ class AppState extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
   String get fontFamily => _fontFamily;
+  double get kanjiSize => _kanjiSize;
+  double get meaningSize => _meaningSize;
   String get searchQuery => _searchQuery;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -56,6 +60,18 @@ class AppState extends ChangeNotifier {
 
   void setFont(String font) {
     _fontFamily = font;
+    _savePreferences();
+    notifyListeners();
+  }
+
+  void setKanjiSize(double size) {
+    _kanjiSize = size;
+    _savePreferences();
+    notifyListeners();
+  }
+
+  void setMeaningSize(double size) {
+    _meaningSize = size;
     _savePreferences();
     notifyListeners();
   }
@@ -113,6 +129,8 @@ class AppState extends ChangeNotifier {
     final isDark = prefs.getBool('isDarkTheme') ?? false;
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     _fontFamily = prefs.getString('fontFamily') ?? 'Noto Serif JP';
+    _kanjiSize = prefs.getDouble('kanjiSize') ?? 32.0;
+    _meaningSize = prefs.getDouble('meaningSize') ?? 12.0;
     notifyListeners();
   }
 
@@ -120,5 +138,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkTheme', _themeMode == ThemeMode.dark);
     await prefs.setString('fontFamily', _fontFamily);
+    await prefs.setDouble('kanjiSize', _kanjiSize);
+    await prefs.setDouble('meaningSize', _meaningSize);
   }
 }

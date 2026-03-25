@@ -65,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          // Theme section
+          // Theme toggle — top of page
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -186,60 +186,37 @@ class SettingsScreen extends StatelessWidget {
               style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
             ),
           ),
+          for (int i = 1; i <= (int.tryParse(appState.configValue('more_apps_count', '1')) ?? 1); i++)
+            _PromoAppCard(
+              logoUrl: appState.configValue('more_apps_${i}_logo_url', ''),
+              name: appState.configValue('more_apps_${i}_name', ''),
+              description: appState.configValue('more_apps_${i}_description', ''),
+              installUrl: appState.configValue('more_apps_${i}_url', ''),
+            ),
+
+          // Size sliders
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/jftandskillmocktest.png',
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                    ),
+                  _SizeSliderRow(
+                    icon: Icons.format_size,
+                    label: 'Kanji Size',
+                    value: appState.kanjiSize,
+                    min: 20.0,
+                    max: 60.0,
+                    onChanged: (v) => context.read<AppState>().setKanjiSize(v),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          appState.configValue('more_apps_name', 'JFT & Skill Mock Test'),
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          appState.configValue(
-                            'more_apps_description',
-                            'Prepare for JFT-Basic and Skill Test with our mock test. JFT-Basic, Food, Nursing(JP/NP), Agri(Crop/Live), Acco, Cons, Building Cleaning, Ground Handling',
-                          ),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton.tonal(
-                          onPressed: () => launchUrl(
-                            Uri.parse(appState.configValue(
-                              'more_apps_url',
-                              'https://primebenchmark.com.np/app',
-                            )),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 32),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text('Install Now'),
-                        ),
-                      ],
-                    ),
+                  const Divider(height: 24),
+                  _SizeSliderRow(
+                    icon: Icons.text_fields,
+                    label: 'Meaning Size',
+                    value: appState.meaningSize,
+                    min: 8.0,
+                    max: 24.0,
+                    onChanged: (v) => context.read<AppState>().setMeaningSize(v),
                   ),
                 ],
               ),
@@ -292,6 +269,147 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+class _PromoAppCard extends StatelessWidget {
+  final String logoUrl;
+  final String name;
+  final String description;
+  final String installUrl;
+
+  const _PromoAppCard({
+    required this.logoUrl,
+    required this.name,
+    required this.description,
+    required this.installUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (name.isEmpty && installUrl.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: logoUrl.isNotEmpty
+                  ? Image.network(
+                      logoUrl,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, _) => _placeholderIcon(colorScheme),
+                    )
+                  : _placeholderIcon(colorScheme),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (name.isNotEmpty)
+                    Text(
+                      name,
+                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                  if (installUrl.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    FilledButton.tonal(
+                      onPressed: () => launchUrl(
+                        Uri.parse(installUrl),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text('Install Now'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholderIcon(ColorScheme colorScheme) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(Icons.apps, color: colorScheme.onSurfaceVariant, size: 28),
+    );
+  }
+}
+
+class _SizeSliderRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _SizeSliderRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 12),
+            Text(label, style: textTheme.bodyLarge),
+            const Spacer(),
+            Text(
+              value.round().toString(),
+              style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
+            ),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: (max - min).round(),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }
