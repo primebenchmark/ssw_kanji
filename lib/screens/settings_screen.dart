@@ -6,8 +6,26 @@ import '../providers/app_state.dart';
 import 'admin_panel_screen.dart';
 import 'privacy_policy_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  int _adminTapCount = 0;
+
+  void _onAdminTap() {
+    setState(() => _adminTapCount++);
+    if (_adminTapCount >= 10) {
+      _adminTapCount = 0;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
+      );
+    }
+  }
 
   // (fontFamily, displayName) — all support Japanese characters via Google Fonts
   static const _fonts = [
@@ -15,6 +33,9 @@ class SettingsScreen extends StatelessWidget {
     ('Noto Serif JP', 'Noto Serif JP'),
     ('M PLUS 1p', 'M PLUS 1p'),
     ('M PLUS Rounded 1c', 'M PLUS Rounded 1c'),
+    ('M PLUS 1', 'M PLUS 1'),
+    ('M PLUS 2', 'M PLUS 2'),
+    ('M PLUS 1 Code', 'M PLUS 1 Code'),
     ('Kosugi', 'Kosugi'),
     ('Kosugi Maru', 'Kosugi Maru'),
     ('Sawarabi Gothic', 'Sawarabi Gothic'),
@@ -26,10 +47,36 @@ class SettingsScreen extends StatelessWidget {
     ('Klee One', 'Klee One'),
     ('BIZ UDPGothic', 'BIZ UDPGothic'),
     ('BIZ UDPMincho', 'BIZ UDPMincho'),
+    ('BIZ UDGothic', 'BIZ UDGothic'),
+    ('BIZ UDMincho', 'BIZ UDMincho'),
     ('Hina Mincho', 'Hina Mincho'),
     ('Zen Kaku Gothic New', 'Zen Kaku Gothic New'),
+    ('Zen Kaku Gothic Antique', 'Zen Kaku Gothic Antique'),
     ('Zen Old Mincho', 'Zen Old Mincho'),
+    ('Zen Maru Gothic', 'Zen Maru Gothic'),
+    ('Zen Antique', 'Zen Antique'),
+    ('Zen Antique Soft', 'Zen Antique Soft'),
+    ('Zen Loop', 'Zen Loop'),
     ('Shippori Mincho', 'Shippori Mincho'),
+    ('Shippori Mincho B1', 'Shippori Mincho B1'),
+    ('Shippori Antique', 'Shippori Antique'),
+    ('Shippori Antique B1', 'Shippori Antique B1'),
+    ('Dela Gothic One', 'Dela Gothic One'),
+    ('DotGothic16', 'DotGothic16'),
+    ('Murecho', 'Murecho'),
+    ('RocknRoll One', 'RocknRoll One'),
+    ('Reggae One', 'Reggae One'),
+    ('New Tegomin', 'New Tegomin'),
+    ('Yusei Magic', 'Yusei Magic'),
+    ('Stick', 'Stick'),
+    ('Train One', 'Train One'),
+    ('Potta One', 'Potta One'),
+    ('Rampart One', 'Rampart One'),
+    ('Hachi Maru Pop', 'Hachi Maru Pop'),
+    ('Yomogi', 'Yomogi'),
+    ('Yuji Boku', 'Yuji Boku'),
+    ('Yuji Mai', 'Yuji Mai'),
+    ('Yuji Syuku', 'Yuji Syuku'),
     ('Roboto', 'Roboto (Default)'),
   ];
 
@@ -339,10 +386,7 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Admin Panel'),
               subtitle: const Text('Manage app content and appearance'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
-              ),
+              onTap: _onAdminTap,
             ),
           ),
 
