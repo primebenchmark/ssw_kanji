@@ -16,6 +16,7 @@ class KanjiItemTile extends StatelessWidget {
 
     // Use context.select to only rebuild when the specific values we use change,
     // not on every AppState notification (e.g. search query, expanded categories)
+    final isMemorized = context.select<AppState, bool>((s) => s.isMemorized(item.id));
     final kanjiSize = context.select<AppState, double>((s) => s.kanjiSize);
     final meaningSize = context.select<AppState, double>((s) => s.meaningSize);
     final kanjiFontKey = context.select<AppState, String>(
@@ -36,12 +37,16 @@ class KanjiItemTile extends StatelessWidget {
       } catch (_) {}
     }
 
-    return Container(
+    return GestureDetector(
+      onTap: () => context.read<AppState>().toggleMemorized(item.id),
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: vertPadding),
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(12)),
-        color: isDark ? const Color(0x0DFFFFFF) : const Color(0x4DFFFFFF),
+        color: isMemorized
+            ? const Color(0xFF2ECC71)
+            : isDark ? const Color(0x0DFFFFFF) : const Color(0x4DFFFFFF),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -78,6 +83,7 @@ class KanjiItemTile extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

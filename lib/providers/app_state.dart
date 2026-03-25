@@ -20,6 +20,7 @@ class AppState extends ChangeNotifier {
   double _meaningSize = 12.0;
   String _searchQuery = '';
   final Set<int> _expandedCategories = {};
+  final Set<int> _memorizedItems = {};
   bool _isLoading = true;
   String? _error;
 
@@ -48,6 +49,16 @@ class AppState extends ChangeNotifier {
 
   bool isCategoryExpanded(int id) => _expandedCategories.contains(id);
   bool isCategoryLoading(int id) => _loadingCategories.contains(id);
+  bool isMemorized(int itemId) => _memorizedItems.contains(itemId);
+
+  void toggleMemorized(int itemId) {
+    if (_memorizedItems.contains(itemId)) {
+      _memorizedItems.remove(itemId);
+    } else {
+      _memorizedItems.add(itemId);
+    }
+    notifyListeners();
+  }
 
   List<KanjiItem> itemsForCategory(int categoryId) {
     final items = _itemsByCategory[categoryId] ?? [];
