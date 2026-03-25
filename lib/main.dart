@@ -13,7 +13,6 @@ Future<void> main() async {
 
   if (!kIsWeb) {
     await Firebase.initializeApp();
-    await NotificationService.initialize();
   }
 
   await Supabase.initialize(
@@ -30,4 +29,8 @@ Future<void> main() async {
       child: const KanjiApp(),
     ),
   );
+
+  if (!kIsWeb) {
+    NotificationService.initialize();
+  }
 }

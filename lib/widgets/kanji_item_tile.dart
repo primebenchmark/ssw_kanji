@@ -22,7 +22,7 @@ class KanjiItemTile extends StatelessWidget {
     final kanjiFontKey = appState.configValue('kanji_font', '');
     TextStyle? kanjiStyle = theme.textTheme.headlineMedium?.copyWith(
       fontWeight: FontWeight.bold,
-      color: isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF2C3E50),
+      color: isDark ? const Color(0xE6FFFFFF) : const Color(0xFF2C3E50),
     );
     if (kanjiFontKey.isNotEmpty) {
       try {
@@ -34,10 +34,8 @@ class KanjiItemTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: vertPadding),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.3),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        color: isDark ? const Color(0x0DFFFFFF) : const Color(0x4DFFFFFF),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

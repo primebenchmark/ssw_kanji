@@ -4,44 +4,68 @@ import 'package:provider/provider.dart';
 import 'providers/app_state.dart';
 import 'screens/home_screen.dart';
 
-class KanjiApp extends StatelessWidget {
+class KanjiApp extends StatefulWidget {
   const KanjiApp({super.key});
+
+  @override
+  State<KanjiApp> createState() => _KanjiAppState();
+}
+
+class _KanjiAppState extends State<KanjiApp> {
+  String? _cachedFontFamily;
+  late ThemeData _lightTheme;
+  late ThemeData _darkTheme;
+
+  static const _appBarTheme = AppBarTheme(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    scrolledUnderElevation: 0,
+  );
+
+  void _rebuildThemes(String fontFamily) {
+    _cachedFontFamily = fontFamily;
+    _lightTheme = ThemeData(
+      colorSchemeSeed: const Color(0xFF7B8FAD),
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: Colors.transparent,
+      appBarTheme: _appBarTheme,
+      textTheme: GoogleFonts.getTextTheme(fontFamily),
+    );
+    _darkTheme = ThemeData(
+      colorSchemeSeed: const Color(0xFF7B8FAD),
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: Colors.transparent,
+      appBarTheme: _appBarTheme,
+      textTheme: GoogleFonts.getTextTheme(
+        fontFamily,
+        ThemeData(brightness: Brightness.dark).textTheme,
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final fontFamily = context.read<AppState>().fontFamily;
+    _rebuildThemes(fontFamily);
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
 
+    if (appState.fontFamily != _cachedFontFamily) {
+      _rebuildThemes(appState.fontFamily);
+    }
+
     return MaterialApp(
       title: 'SSW Kanji',
       debugShowCheckedModeBanner: false,
       themeMode: appState.themeMode,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF7B8FAD),
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.transparent,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-        textTheme: GoogleFonts.getTextTheme(appState.fontFamily),
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF7B8FAD),
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.transparent,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-        textTheme: GoogleFonts.getTextTheme(
-          appState.fontFamily,
-          ThemeData(brightness: Brightness.dark).textTheme,
-        ),
-      ),
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Container(

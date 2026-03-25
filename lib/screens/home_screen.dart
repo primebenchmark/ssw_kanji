@@ -11,6 +11,44 @@ import '../widgets/search_bar_widget.dart';
 import 'settings_screen.dart';
 import 'support_screen.dart';
 
+// Cached decorations to avoid per-rebuild allocations
+const _kHeaderBorderRadius = BorderRadius.all(Radius.circular(16));
+const _kDarkHeaderDecoration = BoxDecoration(
+  borderRadius: _kHeaderBorderRadius,
+  gradient: LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0x14FFFFFF), Color(0x0AFFFFFF)],
+  ),
+  border: Border.fromBorderSide(BorderSide(color: Color(0x1FFFFFFF))),
+);
+const _kLightHeaderDecoration = BoxDecoration(
+  borderRadius: _kHeaderBorderRadius,
+  gradient: LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xA6FFFFFF), Color(0x59FFFFFF)],
+  ),
+  border: Border.fromBorderSide(BorderSide(color: Color(0xCCFFFFFF))),
+);
+const _kDarkGlossDecoration = BoxDecoration(
+  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)],
+  ),
+);
+const _kLightGlossDecoration = BoxDecoration(
+  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x66FFFFFF), Color(0x00FFFFFF)],
+  ),
+);
+final _kHeaderBlurFilter = ImageFilter.blur(sigmaX: 12, sigmaY: 12);
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -92,32 +130,13 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: 8,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: _kHeaderBorderRadius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: _kHeaderBlurFilter,
           child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        Colors.white.withValues(alpha: 0.08),
-                        Colors.white.withValues(alpha: 0.04),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.65),
-                        Colors.white.withValues(alpha: 0.35),
-                      ],
-              ),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.8),
-                width: 1,
-              ),
-            ),
+            decoration: isDark
+                ? _kDarkHeaderDecoration
+                : _kLightHeaderDecoration,
             child: Stack(
               children: [
                 // Glossy highlight
@@ -126,24 +145,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   left: 0,
                   right: 0,
                   height: 30,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16)),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: isDark ? 0.08 : 0.4),
-                          Colors.white.withValues(alpha: 0),
-                        ],
-                      ),
-                    ),
+                  child: DecoratedBox(
+                    decoration: isDark
+                        ? _kDarkGlossDecoration
+                        : _kLightGlossDecoration,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.only(
+                    left: 8,
+                    right: 4,
+                    top: 12,
+                    bottom: 12,
+                  ),
                   child: _isSearching
                       ? Row(
                           children: [
@@ -152,9 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 focusNode: _searchFocusNode,
                                 onClose: () {
                                   setState(() => _isSearching = false);
-                                  context
-                                      .read<AppState>()
-                                      .setSearchQuery('');
+                                  context.read<AppState>().setSearchQuery('');
                                 },
                               ),
                             ),
@@ -162,25 +174,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                'assets/jftandskillmocktest.png',
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     appState.configValue(
-                                        'app_name', 'SSW Kanji'),
+                                      'app_name',
+                                      'SSW Kanji',
+                                    ),
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 20,
@@ -213,39 +216,37 @@ class _HomeScreenState extends State<HomeScreen> {
                               label: 'Search',
                               onPressed: () {
                                 setState(() => _isSearching = true);
-                                WidgetsBinding.instance
-                                    .addPostFrameCallback(
-                                  (_) =>
-                                      _searchFocusNode.requestFocus(),
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                  (_) => _searchFocusNode.requestFocus(),
                                 );
                               },
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 2),
                             _AppBarIconButton(
                               icon: Icons.ios_share_outlined,
                               label: 'Share',
                               onPressed: () => _share(context),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 2),
                             _AppBarIconButton(
                               icon: Icons.phone_outlined,
                               label: 'Support',
                               onPressed: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        const SupportScreen()),
+                                  builder: (_) => const SupportScreen(),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 2),
                             _AppBarIconButton(
                               icon: Icons.settings_outlined,
-                              label: 'Settings',
+                              label: 'Setting',
                               onPressed: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        const SettingsScreen()),
+                                  builder: (_) => const SettingsScreen(),
+                                ),
                               ),
                             ),
                           ],
@@ -386,7 +387,7 @@ class _AppBarIconButton extends StatelessWidget {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 0.5, vertical: 1),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
