@@ -244,6 +244,86 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
+          // Data section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+            child: Text(
+              'Data',
+              style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+            ),
+          ),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined),
+              title: const Text('Clear App Data'),
+              subtitle: const Text('Reset all local settings and preferences'),
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) {
+                    final controller = TextEditingController();
+                    return StatefulBuilder(
+                      builder: (ctx, setState) => AlertDialog(
+                        title: const Text('Clear App Data'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'This will reset all local settings and preferences on this device, including theme, font, sizes, and memorised items. This cannot be undone.',
+                            ),
+                            const SizedBox(height: 16),
+                            const Text('Type DELETE to confirm:'),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controller,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                hintText: 'DELETE',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: controller.text == 'DELETE'
+                                ? () => Navigator.pop(ctx, true)
+                                : null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colorScheme.error,
+                              foregroundColor: colorScheme.onError,
+                              disabledBackgroundColor:
+                                  colorScheme.error.withValues(alpha: 0.38),
+                              disabledForegroundColor:
+                                  colorScheme.onError.withValues(alpha: 0.38),
+                            ),
+                            child: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+                if (confirmed == true && context.mounted) {
+                  await context.read<AppState>().clearAllData();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('App data cleared')),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+
           // Admin section
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),

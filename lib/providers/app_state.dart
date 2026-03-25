@@ -203,6 +203,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> clearAllData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _themeMode = ThemeMode.light;
+    _fontFamily = 'Noto Serif JP';
+    _kanjiSize = 32.0;
+    _meaningSize = 12.0;
+    _lastCategoryId = null;
+    _lastScrollOffset = 0.0;
+    _memorizedItems.clear();
+    _expandedCategories.clear();
+    notifyListeners();
+  }
+
   Future<void> loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('isDarkTheme') ?? false;
