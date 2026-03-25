@@ -244,6 +244,12 @@ class _AdminContentState extends State<_AdminContent> {
   final _notifImageController = TextEditingController();
   bool _sendingNotif = false;
 
+  // Daily kanji notification state
+  bool _dailyNotifEnabled = false;
+  TimeOfDay _dailyNotifTime = const TimeOfDay(hour: 7, minute: 0);
+  bool _savingDailyNotif = false;
+  bool _savedDailyNotif = false;
+
   int get _promoCount => int.tryParse(_controllers['more_apps_count']?.text ?? '') ?? 1;
 
   void _ensurePromoControllers(AppState appState) {
@@ -279,6 +285,15 @@ class _AdminContentState extends State<_AdminContent> {
       }
     }
     _ensurePromoControllers(appState);
+
+    // Initialize daily kanji notification settings from app_config
+    final enabledStr = appState.configValue('daily_notif_enabled', 'false');
+    final timeStr = appState.configValue('daily_notif_time', '07:00');
+    final parts = timeStr.split(':');
+    final hour = int.tryParse(parts.isNotEmpty ? parts[0] : '7') ?? 7;
+    final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+    _dailyNotifEnabled = enabledStr == 'true';
+    _dailyNotifTime = TimeOfDay(hour: hour, minute: minute);
   }
 
   @override
@@ -382,6 +397,7 @@ class _AdminContentState extends State<_AdminContent> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           _buildNotificationPanel(context),
+          _buildDailyKanjiPanel(context),
           _CsvUploadPanel(service: widget.service),
           _CsvExportPanel(service: widget.service),
           _buildPromotionSection(context),
@@ -506,6 +522,117 @@ class _AdminContentState extends State<_AdminContent> {
                         )
                       : const Icon(Icons.send),
                   label: Text(_sendingNotif ? 'Sending...' : 'Send Notification'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _saveDailyKanjiSettings() async {
+    setState(() {
+      _savingDailyNotif = true;
+      _savedDailyNotif = false;
+    });
+    try {
+      final appState = context.read<AppState>();
+      final timeStr =
+          '${_dailyNotifTime.hour.toString().padLeft(2, '0')}:${_dailyNotifTime.minute.toString().padLeft(2, '0')}';
+      await appState.updateConfig(widget.service, 'daily_notif_enabled', _dailyNotifEnabled ? 'true' : 'false');
+      await appState.updateConfig(widget.service, 'daily_notif_time', timeStr);
+      if (mounted) {
+        setState(() {
+          _savingDailyNotif = false;
+          _savedDailyNotif = true;
+        });
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) setState(() => _savedDailyNotif = false);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _savingDailyNotif = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      }
+    }
+  }
+
+  Widget _buildDailyKanjiPanel(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final timeLabel =
+        '${_dailyNotifTime.hour.toString().padLeft(2, '0')}:${_dailyNotifTime.minute.toString().padLeft(2, '0')} UTC';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            'Daily Kanji Notification',
+            style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Enable Daily Kanji'),
+                  subtitle: const Text('Send a random kanji with reading & meaning each day'),
+                  value: _dailyNotifEnabled,
+                  onChanged: (v) => setState(() => _dailyNotifEnabled = v),
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Send Time (UTC)', style: textTheme.bodyMedium),
+                          Text(timeLabel, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: _dailyNotifTime,
+                          helpText: 'Select send time (UTC)',
+                        );
+                        if (picked != null) setState(() => _dailyNotifTime = picked);
+                      },
+                      child: const Text('Change'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _savingDailyNotif ? null : _saveDailyKanjiSettings,
+                  icon: _savingDailyNotif
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Icon(_savedDailyNotif ? Icons.check : Icons.save_outlined),
+                  label: Text(_savingDailyNotif
+                      ? 'Saving...'
+                      : _savedDailyNotif
+                          ? 'Saved'
+                          : 'Save Settings'),
                 ),
               ],
             ),
