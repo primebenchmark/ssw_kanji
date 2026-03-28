@@ -82,16 +82,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   static const _previewText = '漢字・かな・カナ — The quick brown fox';
 
+  // Cache derived Set so it isn't reallocated on every build() call.
+  static final _validFontKeys = {for (final (k, _) in _fonts) k};
+
+  // Cache GoogleFonts TextStyle objects to avoid re-allocating on every build.
+  // Key format: "$fontFamily|$fontSize|$fontWeight"
+  static final _fontStyleCache = <String, TextStyle>{};
+
   static TextStyle? _fontStyle(String fontFamily, {double? fontSize, FontWeight? fontWeight}) {
+    final cacheKey = '$fontFamily|$fontSize|$fontWeight';
+    if (_fontStyleCache.containsKey(cacheKey)) return _fontStyleCache[cacheKey];
+    TextStyle? style;
     try {
-      return GoogleFonts.getFont(
-        fontFamily,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-      );
+      style = GoogleFonts.getFont(fontFamily, fontSize: fontSize, fontWeight: fontWeight);
     } catch (_) {
-      return TextStyle(fontFamily: fontFamily, fontSize: fontSize, fontWeight: fontWeight);
+      style = TextStyle(fontFamily: fontFamily, fontSize: fontSize, fontWeight: fontWeight);
     }
+    _fontStyleCache[cacheKey] = style;
+    return style;
   }
 
   @override
@@ -99,8 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final appState = context.watch<AppState>();
     final isDark = appState.themeMode == ThemeMode.dark;
     final savedFont = appState.fontFamily;
-    final validFontValues = _fonts.map((e) => e.$1).toSet();
-    final currentFont = validFontValues.contains(savedFont) ? savedFont : _fonts.first.$1;
+    final currentFont = _validFontKeys.contains(savedFont) ? savedFont : _fonts.first.$1;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 

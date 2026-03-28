@@ -171,6 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Image.network(
                         appState.configValue('header_bg_image_url', ''),
                         fit: BoxFit.cover,
+                        // Limit decode size to avoid holding a full-res image in
+                        // memory for a small header tile.
+                        cacheWidth: 800,
                         errorBuilder: (_, __, _) => const SizedBox.shrink(),
                       ),
                     ),
@@ -382,8 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final sortedCategories = [...appState.categories]
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    // Categories come pre-sorted by sort_order from the Supabase query; no
+    // need to re-sort on every build.
+    final sortedCategories = appState.categories;
     final visibleCategories = appState.searchQuery.isEmpty
         ? sortedCategories
         : sortedCategories

@@ -68,16 +68,19 @@ class _KanjiAppState extends State<KanjiApp> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
+    // Watch only the two fields that affect MaterialApp; prevents rebuilding
+    // the entire widget tree on unrelated AppState changes (memorized, search, etc.)
+    final fontFamily = context.select<AppState, String>((s) => s.fontFamily);
+    final themeMode = context.select<AppState, ThemeMode>((s) => s.themeMode);
 
-    if (appState.fontFamily != _cachedFontFamily) {
-      _rebuildThemes(appState.fontFamily);
+    if (fontFamily != _cachedFontFamily) {
+      _rebuildThemes(fontFamily);
     }
 
     return MaterialApp(
       title: 'SSW Kanji',
       debugShowCheckedModeBanner: false,
-      themeMode: appState.themeMode,
+      themeMode: themeMode,
       theme: _lightTheme,
       darkTheme: _darkTheme,
       builder: (context, child) {

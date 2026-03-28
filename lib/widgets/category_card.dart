@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/category.dart';
+import '../models/kanji_item.dart';
 import '../providers/app_state.dart';
 import 'kanji_item_tile.dart';
 
@@ -57,26 +58,25 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appState = context.watch<AppState>();
-    final isExpanded = appState.isCategoryExpanded(category.id);
-    final totalCount = appState.itemCountForCategory(category.id);
     final isDark = theme.brightness == Brightness.dark;
 
-    final vertPadding = (double.tryParse(
-          appState.configValue('category_card_vertical_padding', '16'),
-        ) ??
-        16.0).clamp(0.0, 64.0);
-    final cardRadius = (double.tryParse(
-          appState.configValue('category_card_border_radius', '16'),
-        ) ??
-        16.0).clamp(0.0, 64.0);
+    // Use context.select so this card only rebuilds when its own data changes,
+    // not on every AppState notification (memorized items, search query, etc.)
+    final isExpanded = context.select<AppState, bool>((s) => s.isCategoryExpanded(category.id));
+    final totalCount = context.select<AppState, int>((s) => s.itemCountForCategory(category.id));
+    final isLoading = context.select<AppState, bool>((s) => s.isCategoryLoading(category.id));
+    final vertPaddingStr = context.select<AppState, String>((s) => s.configValue('category_card_vertical_padding', '16'));
+    final cardRadiusStr = context.select<AppState, String>((s) => s.configValue('category_card_border_radius', '16'));
+    final categoryFontKey = context.select<AppState, String>((s) => s.configValue('category_font', ''));
+
+    final vertPadding = (double.tryParse(vertPaddingStr) ?? 16.0).clamp(0.0, 64.0);
+    final cardRadius = (double.tryParse(cardRadiusStr) ?? 16.0).clamp(0.0, 64.0);
     final borderRadius16 = BorderRadius.all(Radius.circular(cardRadius));
     final borderRadiusTop16 = BorderRadius.vertical(top: Radius.circular(cardRadius));
     final cardDecoration = (isDark ? _kDarkCardDecoration : _kLightCardDecoration)
         .copyWith(borderRadius: borderRadius16);
     final highlightDecoration = (isDark ? _kDarkHighlightDecoration : _kLightHighlightDecoration)
         .copyWith(borderRadius: borderRadiusTop16);
-    final categoryFontKey = appState.configValue('category_font', '');
     final baseStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w600,
       color: isDark ? const Color(0xE6FFFFFF) : const Color(0xFF2C3E50),
@@ -111,7 +111,7 @@ class CategoryCard extends StatelessWidget {
                 children: [
                   InkWell(
                     borderRadius: borderRadius16,
-                    onTap: () => appState.toggleCategory(category.id),
+                    onTap: () => context.read<AppState>().toggleCategory(category.id),
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                           horizontal: 20, vertical: vertPadding),
@@ -168,7 +168,7 @@ class CategoryCard extends StatelessWidget {
                     alignment: Alignment.topCenter,
                     clipBehavior: Clip.hardEdge,
                     child: isExpanded
-                        ? appState.isCategoryLoading(category.id)
+                        ? isLoading
                             ? Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 20),
                                 child: Center(
@@ -209,8 +209,10 @@ class _ExpandedContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final items = appState.itemsForCategory(category.id);
+    // Rebuilds only when items for this category change (load or search filter)
+    final items = context.select<AppState, List<KanjiItem>>(
+      (s) => s.itemsForCategory(category.id),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
