@@ -131,57 +131,21 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
-  static const _pin = '02DF4e9be7c8*';
-  static const _maxAttempts = 5;
-  static const _lockoutDuration = Duration(minutes: 5);
-
   bool _authenticated = false;
   late final KanjiService _service;
-  int _failedAttempts = 0;
-  DateTime? _lockoutUntil;
 
   @override
   void initState() {
     super.initState();
     _service = KanjiService(Supabase.instance.client);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showPinDialog());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showLoginDialog());
   }
 
-  bool get _isLockedOut {
-    final until = _lockoutUntil;
-    if (until == null) return false;
-    if (DateTime.now().isAfter(until)) {
-      _lockoutUntil = null;
-      _failedAttempts = 0;
-      return false;
-    }
-    return true;
-  }
-
-  String get _lockoutMessage {
-    final until = _lockoutUntil;
-    if (until == null) return '';
-    final remaining = until.difference(DateTime.now()).inMinutes + 1;
-    return 'Too many attempts. Try again in $remaining minute(s).';
-  }
-
-  bool _tryPin(String input) {
-    if (_isLockedOut) return false;
-    if (input == _pin) {
-      _failedAttempts = 0;
-      _lockoutUntil = null;
-      return true;
-    }
-    _failedAttempts++;
-    if (_failedAttempts >= _maxAttempts) {
-      _lockoutUntil = DateTime.now().add(_lockoutDuration);
-    }
-    return false;
-  }
-
-  Future<void> _showPinDialog() async {
-    final controller = TextEditingController();
+  Future<void> _showLoginDialog() async {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
     String? errorText;
+    bool loading = false;
 
     final result = await showDialog<bool>(
       context: context,
@@ -192,32 +156,40 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter PIN to access the admin panel.'),
+              const Text('Sign in with your admin account.'),
               const SizedBox(height: 16),
               TextField(
-                controller: controller,
-                obscureText: true,
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 autofocus: true,
-                enabled: !_isLockedOut,
+                enabled: !loading,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                enabled: !loading,
                 decoration: InputDecoration(
-                  labelText: 'PIN',
-                  errorText: _isLockedOut ? _lockoutMessage : errorText,
+                  labelText: 'Password',
+                  errorText: errorText,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.lock_outline),
                 ),
-                onSubmitted: (_) {
-                  if (_isLockedOut) {
-                    setDialogState(() {});
-                    return;
-                  }
-                  if (_tryPin(controller.text)) {
+                onSubmitted: (_) async {
+                  if (loading) return;
+                  setDialogState(() { loading = true; errorText = null; });
+                  final ok = await _signIn(emailController.text.trim(), passwordController.text);
+                  if (!context.mounted) return;
+                  if (ok) {
                     Navigator.pop(context, true);
                   } else {
-                    final msg = _isLockedOut
-                        ? _lockoutMessage
-                        : 'Incorrect PIN (${_maxAttempts - _failedAttempts} attempts remaining)';
-                    setDialogState(() => errorText = msg);
-                    controller.clear();
+                    setDialogState(() { loading = false; errorText = 'Invalid credentials'; });
+                    passwordController.clear();
                   }
                 },
               ),
@@ -225,24 +197,26 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: loading ? null : () => Navigator.pop(context, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: _isLockedOut
+              onPressed: loading
                   ? null
-                  : () {
-                      if (_tryPin(controller.text)) {
+                  : () async {
+                      setDialogState(() { loading = true; errorText = null; });
+                      final ok = await _signIn(emailController.text.trim(), passwordController.text);
+                      if (!context.mounted) return;
+                      if (ok) {
                         Navigator.pop(context, true);
                       } else {
-                        final msg = _isLockedOut
-                            ? _lockoutMessage
-                            : 'Incorrect PIN (${_maxAttempts - _failedAttempts} attempts remaining)';
-                        setDialogState(() => errorText = msg);
-                        controller.clear();
+                        setDialogState(() { loading = false; errorText = 'Invalid credentials'; });
+                        passwordController.clear();
                       }
                     },
-              child: const Text('Unlock'),
+              child: loading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Sign In'),
             ),
           ],
         ),
@@ -254,8 +228,30 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     if (result == true) {
       setState(() => _authenticated = true);
     } else {
-      Navigator.pop(context);
+      // Sign out if user cancelled after a partial auth state
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) Navigator.pop(context);
     }
+  }
+
+  Future<bool> _signIn(String email, String password) async {
+    if (email.isEmpty || password.isEmpty) return false;
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      return response.user != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Sign out when the admin panel is closed
+    Supabase.instance.client.auth.signOut();
+    super.dispose();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -84,6 +85,8 @@ class NotificationService {
         {'token': token, 'updated_at': DateTime.now().toIso8601String()},
         onConflict: 'token',
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[NotificationService] Failed to save device token: $e');
+    }
   }
 }
