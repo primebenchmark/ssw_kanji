@@ -23,10 +23,10 @@ class KanjiItemTile extends StatelessWidget {
       (s) => s.configValue('kanji_font', ''),
     );
     final vertPadding = context.select<AppState, double>(
-      (s) => double.tryParse(s.configValue('kanji_item_vertical_padding', '12')) ?? 12.0,
+      (s) => (double.tryParse(s.configValue('kanji_item_vertical_padding', '12')) ?? 12.0).clamp(0.0, 64.0),
     );
     final kanjiCardRadius = context.select<AppState, double>(
-      (s) => double.tryParse(s.configValue('kanji_card_border_radius', '12')) ?? 12.0,
+      (s) => (double.tryParse(s.configValue('kanji_card_border_radius', '12')) ?? 12.0).clamp(0.0, 64.0),
     );
 
     TextStyle? kanjiStyle = theme.textTheme.headlineMedium?.copyWith(

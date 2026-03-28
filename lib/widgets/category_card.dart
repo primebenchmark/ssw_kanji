@@ -62,14 +62,14 @@ class CategoryCard extends StatelessWidget {
     final totalCount = appState.itemCountForCategory(category.id);
     final isDark = theme.brightness == Brightness.dark;
 
-    final vertPadding = double.tryParse(
+    final vertPadding = (double.tryParse(
           appState.configValue('category_card_vertical_padding', '16'),
         ) ??
-        16.0;
-    final cardRadius = double.tryParse(
+        16.0).clamp(0.0, 64.0);
+    final cardRadius = (double.tryParse(
           appState.configValue('category_card_border_radius', '16'),
         ) ??
-        16.0;
+        16.0).clamp(0.0, 64.0);
     final borderRadius16 = BorderRadius.all(Radius.circular(cardRadius));
     final borderRadiusTop16 = BorderRadius.vertical(top: Radius.circular(cardRadius));
     final cardDecoration = (isDark ? _kDarkCardDecoration : _kLightCardDecoration)

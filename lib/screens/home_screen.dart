@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../utils/url_utils.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/app_state.dart';
 import '../services/kanji_service.dart';
@@ -139,10 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFloatingHeader(AppState appState, bool isDark) {
-    final headerRadius = double.tryParse(
+    final headerRadius = (double.tryParse(
           appState.configValue('header_card_border_radius', '16'),
         ) ??
-        16.0;
+        16.0).clamp(0.0, 64.0);
     final headerBorderRadius = BorderRadius.all(Radius.circular(headerRadius));
     final headerDecoration = (isDark ? _kDarkHeaderDecoration : _kLightHeaderDecoration)
         .copyWith(borderRadius: headerBorderRadius);
@@ -320,10 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (footerLinkUrl.isEmpty) return text;
     return GestureDetector(
-      onTap: () => launchUrl(
-        Uri.parse(footerLinkUrl),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => launchUrlSafe(footerLinkUrl),
       child: text,
     );
   }
@@ -478,10 +475,7 @@ class _HeaderTitleArea extends StatelessWidget {
     if (headerLinkUrl.isEmpty) return column;
 
     return GestureDetector(
-      onTap: () => launchUrl(
-        Uri.parse(headerLinkUrl),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => launchUrlSafe(headerLinkUrl),
       child: column,
     );
   }

@@ -132,15 +132,51 @@ class AdminPanelScreen extends StatefulWidget {
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   static const _pin = '02DF4e9be7c8*';
+  static const _maxAttempts = 5;
+  static const _lockoutDuration = Duration(minutes: 5);
 
   bool _authenticated = false;
   late final KanjiService _service;
+  int _failedAttempts = 0;
+  DateTime? _lockoutUntil;
 
   @override
   void initState() {
     super.initState();
     _service = KanjiService(Supabase.instance.client);
     WidgetsBinding.instance.addPostFrameCallback((_) => _showPinDialog());
+  }
+
+  bool get _isLockedOut {
+    final until = _lockoutUntil;
+    if (until == null) return false;
+    if (DateTime.now().isAfter(until)) {
+      _lockoutUntil = null;
+      _failedAttempts = 0;
+      return false;
+    }
+    return true;
+  }
+
+  String get _lockoutMessage {
+    final until = _lockoutUntil;
+    if (until == null) return '';
+    final remaining = until.difference(DateTime.now()).inMinutes + 1;
+    return 'Too many attempts. Try again in $remaining minute(s).';
+  }
+
+  bool _tryPin(String input) {
+    if (_isLockedOut) return false;
+    if (input == _pin) {
+      _failedAttempts = 0;
+      _lockoutUntil = null;
+      return true;
+    }
+    _failedAttempts++;
+    if (_failedAttempts >= _maxAttempts) {
+      _lockoutUntil = DateTime.now().add(_lockoutDuration);
+    }
+    return false;
   }
 
   Future<void> _showPinDialog() async {
@@ -162,17 +198,25 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 controller: controller,
                 obscureText: true,
                 autofocus: true,
+                enabled: !_isLockedOut,
                 decoration: InputDecoration(
                   labelText: 'PIN',
-                  errorText: errorText,
+                  errorText: _isLockedOut ? _lockoutMessage : errorText,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.lock_outline),
                 ),
                 onSubmitted: (_) {
-                  if (controller.text == _pin) {
+                  if (_isLockedOut) {
+                    setDialogState(() {});
+                    return;
+                  }
+                  if (_tryPin(controller.text)) {
                     Navigator.pop(context, true);
                   } else {
-                    setDialogState(() => errorText = 'Incorrect PIN');
+                    final msg = _isLockedOut
+                        ? _lockoutMessage
+                        : 'Incorrect PIN (${_maxAttempts - _failedAttempts} attempts remaining)';
+                    setDialogState(() => errorText = msg);
                     controller.clear();
                   }
                 },
@@ -185,14 +229,19 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
-                if (controller.text == _pin) {
-                  Navigator.pop(context, true);
-                } else {
-                  setDialogState(() => errorText = 'Incorrect PIN');
-                  controller.clear();
-                }
-              },
+              onPressed: _isLockedOut
+                  ? null
+                  : () {
+                      if (_tryPin(controller.text)) {
+                        Navigator.pop(context, true);
+                      } else {
+                        final msg = _isLockedOut
+                            ? _lockoutMessage
+                            : 'Incorrect PIN (${_maxAttempts - _failedAttempts} attempts remaining)';
+                        setDialogState(() => errorText = msg);
+                        controller.clear();
+                      }
+                    },
               child: const Text('Unlock'),
             ),
           ],
@@ -250,7 +299,7 @@ class _AdminContentState extends State<_AdminContent> {
   bool _savingDailyNotif = false;
   bool _savedDailyNotif = false;
 
-  int get _promoCount => int.tryParse(_controllers['more_apps_count']?.text ?? '') ?? 1;
+  int get _promoCount => (int.tryParse(_controllers['more_apps_count']?.text ?? '') ?? 1).clamp(0, 20);
 
   void _ensurePromoControllers(AppState appState) {
     if (!_controllers.containsKey('more_apps_count')) {
@@ -319,6 +368,23 @@ class _AdminContentState extends State<_AdminContent> {
       return;
     }
 
+    if (title.length > 200 || body.length > 1000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title max 200 chars, body max 1000 chars')),
+      );
+      return;
+    }
+
+    if (image.isNotEmpty) {
+      final uri = Uri.tryParse(image);
+      if (uri == null || !{'http', 'https'}.contains(uri.scheme.toLowerCase())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image URL must be a valid HTTP/HTTPS URL')),
+        );
+        return;
+      }
+    }
+
     setState(() => _sendingNotif = true);
     try {
       final payload = <String, String>{'title': title, 'body': body};
@@ -346,7 +412,7 @@ class _AdminContentState extends State<_AdminContent> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: const Text('Failed to send notification. Please try again.'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -375,7 +441,7 @@ class _AdminContentState extends State<_AdminContent> {
       if (mounted) {
         setState(() => _saving.remove(key));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(content: const Text('Failed to save. Please try again.'), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
     }
@@ -555,7 +621,7 @@ class _AdminContentState extends State<_AdminContent> {
       if (mounted) {
         setState(() => _savingDailyNotif = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving: $e'), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(content: const Text('Failed to save. Please try again.'), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
     }
@@ -1100,7 +1166,7 @@ class _CsvUploadPanelState extends State<_CsvUploadPanel> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _resultMessage = 'Upload failed: $e';
+          _resultMessage = 'Upload failed. Please check the file and try again.';
           _resultIsError = true;
         });
       }
@@ -1262,7 +1328,7 @@ class _CsvExportPanelState extends State<_CsvExportPanel> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _resultMessage = 'Export failed: $e';
+          _resultMessage = 'Export failed. Please try again.';
           _resultIsError = true;
         });
       }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../utils/url_utils.dart';
 import '../providers/app_state.dart';
 import 'admin_panel_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -235,7 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
             ),
           ),
-          for (int i = 1; i <= (int.tryParse(appState.configValue('more_apps_count', '1')) ?? 1); i++)
+          for (int i = 1; i <= (int.tryParse(appState.configValue('more_apps_count', '1')) ?? 1).clamp(0, 20); i++)
             _PromoAppCard(
               logoUrl: appState.configValue('more_apps_${i}_logo_url', ''),
               name: appState.configValue('more_apps_${i}_name', ''),
@@ -457,10 +457,7 @@ class _PromoAppCard extends StatelessWidget {
                   if (installUrl.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     FilledButton.tonal(
-                      onPressed: () => launchUrl(
-                        Uri.parse(installUrl),
-                        mode: LaunchMode.externalApplication,
-                      ),
+                      onPressed: () => launchUrlSafe(installUrl),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 32),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
